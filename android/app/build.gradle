@@ -98,6 +98,15 @@ android {
         }
     }
 
+    // Abodeh Play Full Edition assets can be ~2.7 GiB. The original .big
+    // archives are already container files and recompressing them makes Gradle/AAPT
+    // slower while gaining very little. Keep the heavy game formats stored.
+    // The staged fullgame/ directory itself is gitignored and only exists in a
+    // private/local build that uses the player's own game installation.
+    aaptOptions {
+        noCompress 'big', 'bik', 'vp6', 'wav', 'mp3', 'tga', 'map', 'str'
+    }
+
     buildTypes {
         debug {
             // Explicit: overrides AGP's implicit per-machine debug signingConfig

@@ -557,6 +557,8 @@ public class SetupActivity extends Activity {
         statusText = UiKit.body(folder, null);
         statusText.setTextIsSelectable(true);
 
+        UiKit.button(folder, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_download,
+            getString(R.string.setup_button_import_drive), this::onImportFromDrive);
         UiKit.button(folder, UiKit.BTN_TONAL, R.drawable.ic_gzh_folder,
             getString(R.string.setup_button_select_game_folder), this::onSelectGameFolder);
         UiKit.button(folder, UiKit.BTN_TONAL, R.drawable.ic_gzh_folder,

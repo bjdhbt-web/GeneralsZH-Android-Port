@@ -47,6 +47,7 @@ import android.text.Spanned;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
+import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.Menu;
 import android.view.View;

@@ -163,5 +163,9 @@ dependencies {
     // WindowInsetsCompat (InsetUtil.java) -- pulled in transitively by
     // Material already, but declared directly since we call its APIs.
     implementation 'androidx.core:core:1.13.1'
+
+    // Abodeh Play: Storage Access Framework wrapper used to import the user's
+    // own Generals/Zero Hour folders directly from Google Drive.
+    implementation 'androidx.documentfile:documentfile:1.0.1'
 }
 

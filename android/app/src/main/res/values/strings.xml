@@ -352,4 +352,16 @@
     <string name="full_bundle_install_failed">Could not install the bundled game files.</string>
     <string name="full_bundle_install_retry">Retry</string>
 
+
+    <!-- Abodeh Play: Google Drive import -->
+    <string name="setup_button_import_drive">Import from Google Drive</string>
+    <string name="drive_import_title">Download game from Google Drive</string>
+    <string name="drive_import_scanning">Scanning the Drive folder…</string>
+    <string name="drive_import_keep_open">Select the Command and Conquer - Generals folder that contains both Generals and Zero Hour. Keep the app open while files are copied.</string>
+    <string name="drive_import_copying">Downloading game files… %1$d%%</string>
+    <string name="drive_import_complete">Game download complete ✓</string>
+    <string name="drive_import_launching">Launching Abodeh Play…</string>
+    <string name="drive_import_failed">Could not download the game files from Drive.</string>
+    <string name="drive_import_retry">Continue / Retry</string>
+
 </resources>

@@ -362,6 +362,7 @@
     <string name="drive_import_complete">Game download complete ✓</string>
     <string name="drive_import_launching">Launching Abodeh Play…</string>
     <string name="drive_import_failed">Could not download the game files from Drive.</string>
+    <string name="drive_import_choose_another">Choose another folder</string>
     <string name="drive_import_retry">Continue / Retry</string>
 
 </resources>

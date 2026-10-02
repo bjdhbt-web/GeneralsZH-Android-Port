@@ -79,6 +79,7 @@ public class SetupActivity extends Activity {
 
     static final String PREFS_NAME = "generalszh_setup";
     static final String PREF_GAME_PATH = "game_path";
+    static final String PREF_DRIVE_TREE_URI = "drive_tree_uri";
 
     // GeneralsX @feature Android port 15/09/2026 Simulation tick rate.
     //
@@ -128,6 +129,7 @@ public class SetupActivity extends Activity {
 
     private TextView statusText;
     private volatile boolean fullBundleInstallStarted;
+    private volatile boolean driveImportStarted;
 
     @Override
     protected void attachBaseContext(android.content.Context newBase) {
@@ -155,6 +157,13 @@ public class SetupActivity extends Activity {
                 return;
             }
             BundledGameData.activateIfInstalled(this);
+        }
+
+        // Abodeh Play Drive Edition: if the user already granted a persistent
+        // Drive folder URI and the copy was interrupted, resume automatically
+        // on the next launch instead of asking for the folder again.
+        if (resumeDriveImportIfNeeded()) {
+            return;
         }
 
         // GeneralsX @feature Android port launcher-ui-2026 08/09/2026 Which
@@ -1466,6 +1475,7 @@ public class SetupActivity extends Activity {
     private static final String DEFAULT_DRIVER_ASSET_DIR = "default_driver";
     private static final int REQUEST_IMPORT_DRIVER = 1002;
     private static final int REQUEST_PICK_BASE_GENERALS = 1003;
+    private static final int REQUEST_IMPORT_DRIVE_FOLDER = 1010;
 
     private TextView customDriverStatusView;
 
@@ -3005,6 +3015,138 @@ public class SetupActivity extends Activity {
 
     private static final int REQUEST_LEGACY_STORAGE_PERMISSION = 1003;
 
+
+    private void onImportFromDrive() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+            | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+            | Intent.FLAG_GRANT_PREFIX_URI_PERMISSION);
+        startActivityForResult(intent, REQUEST_IMPORT_DRIVE_FOLDER);
+    }
+
+    private boolean resumeDriveImportIfNeeded() {
+        if (DriveFolderInstaller.isInstalled(this)) {
+            DriveFolderInstaller.activateIfInstalled(this);
+            return false;
+        }
+        String value = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+            .getString(PREF_DRIVE_TREE_URI, null);
+        if (value == null || value.isEmpty()) {
+            return false;
+        }
+        try {
+            showDriveImportInstaller(Uri.parse(value));
+            return true;
+        } catch (RuntimeException e) {
+            Log.w("AbodehDriveImport", "Saved Drive URI is no longer usable", e);
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                .remove(PREF_DRIVE_TREE_URI).apply();
+            return false;
+        }
+    }
+
+    private void showDriveImportInstaller(Uri treeUri) {
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(24);
+        root.setPadding(pad, pad, pad, pad);
+        scroll.addView(root, new ScrollView.LayoutParams(
+            ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT));
+        setContentView(scroll);
+        InsetUtil.applySafeInsets(scroll);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.drive_import_title);
+        title.setTextSize(26);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        root.addView(title);
+
+        TextView status = new TextView(this);
+        status.setText(R.string.drive_import_scanning);
+        status.setTextSize(17);
+        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        statusLp.topMargin = dp(18);
+        root.addView(status, statusLp);
+
+        android.widget.ProgressBar progress = new android.widget.ProgressBar(
+            this, null, android.R.attr.progressBarStyleHorizontal);
+        progress.setMax(1000);
+        progress.setProgress(0);
+        LinearLayout.LayoutParams progressLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(18));
+        progressLp.topMargin = dp(18);
+        root.addView(progress, progressLp);
+
+        TextView detail = new TextView(this);
+        detail.setText(R.string.drive_import_keep_open);
+        detail.setTextSize(14);
+        LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        detailLp.topMargin = dp(12);
+        root.addView(detail, detailLp);
+
+        Button retry = new Button(this);
+        retry.setText(R.string.drive_import_retry);
+        retry.setVisibility(View.GONE);
+        LinearLayout.LayoutParams retryLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        retryLp.topMargin = dp(20);
+        root.addView(retry, retryLp);
+
+        Runnable startImport = () -> {
+            if (driveImportStarted) return;
+            driveImportStarted = true;
+            retry.setVisibility(View.GONE);
+            status.setText(R.string.drive_import_scanning);
+            detail.setText(R.string.drive_import_keep_open);
+            progress.setProgress(0);
+
+            new Thread(() -> {
+                final long[] lastUiBytes = { -4L * 1024L * 1024L };
+                try {
+                    DriveFolderInstaller.install(this, treeUri, (doneBytes, totalBytes, relativePath) -> {
+                        if (doneBytes - lastUiBytes[0] < 4L * 1024L * 1024L && doneBytes < totalBytes) {
+                            return;
+                        }
+                        lastUiBytes[0] = doneBytes;
+                        int value = totalBytes > 0
+                            ? (int) Math.min(1000L, (doneBytes * 1000L) / totalBytes)
+                            : 0;
+                        int percent = value / 10;
+                        runOnUiThread(() -> {
+                            progress.setProgress(value);
+                            status.setText(getString(R.string.drive_import_copying, percent));
+                            detail.setText(relativePath);
+                        });
+                    });
+
+                    runOnUiThread(() -> {
+                        progress.setProgress(1000);
+                        status.setText(R.string.drive_import_complete);
+                        detail.setText(R.string.drive_import_launching);
+                        status.postDelayed(() -> {
+                            startActivity(new Intent(this, GeneralsZHActivity.class));
+                            finish();
+                        }, 500);
+                    });
+                } catch (Throwable t) {
+                    Log.e("AbodehDriveImport", "Drive import failed", t);
+                    runOnUiThread(() -> {
+                        driveImportStarted = false;
+                        status.setText(R.string.drive_import_failed);
+                        detail.setText(String.valueOf(t.getMessage()));
+                        retry.setVisibility(View.VISIBLE);
+                    });
+                }
+            }, "AbodehDriveImporter").start();
+        };
+
+        retry.setOnClickListener(v -> startImport.run());
+        startImport.run();
+    }
+
     private void onSelectGameFolder() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
@@ -3100,7 +3242,21 @@ public class SetupActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1001 && resultCode == Activity.RESULT_OK && data != null) {
+        if (requestCode == REQUEST_IMPORT_DRIVE_FOLDER && resultCode == Activity.RESULT_OK && data != null) {
+            Uri treeUri = data.getData();
+            if (treeUri != null) {
+                int flags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                try {
+                    getContentResolver().takePersistableUriPermission(treeUri, flags);
+                } catch (SecurityException e) {
+                    Log.w("AbodehDriveImport", "Could not persist Drive folder permission", e);
+                }
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                    .putString(PREF_DRIVE_TREE_URI, treeUri.toString()).apply();
+                showDriveImportInstaller(treeUri);
+            }
+        } else if (requestCode == 1001 && resultCode == Activity.RESULT_OK && data != null) {
             String path = data.getStringExtra(FolderPickerActivity.EXTRA_SELECTED_PATH);
             if (path != null) {
                 saveGamePath(path);

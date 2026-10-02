@@ -280,7 +280,6 @@ public class SetupActivity extends Activity {
                         status.setText(R.string.full_bundle_install_failed);
                         detail.setText(String.valueOf(t.getMessage()));
                         retry.setVisibility(View.VISIBLE);
-                        chooseAnother.setVisibility(View.VISIBLE);
                     });
                 }
             }, "AbodehFullBundleInstaller").start();
@@ -3150,6 +3149,7 @@ public class SetupActivity extends Activity {
                         status.setText(R.string.drive_import_failed);
                         detail.setText(String.valueOf(t.getMessage()));
                         retry.setVisibility(View.VISIBLE);
+                        chooseAnother.setVisibility(View.VISIBLE);
                     });
                 }
             }, "AbodehDriveImporter").start();

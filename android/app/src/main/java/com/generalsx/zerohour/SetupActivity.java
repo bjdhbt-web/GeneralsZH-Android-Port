@@ -280,6 +280,7 @@ public class SetupActivity extends Activity {
                         status.setText(R.string.full_bundle_install_failed);
                         detail.setText(String.valueOf(t.getMessage()));
                         retry.setVisibility(View.VISIBLE);
+                        chooseAnother.setVisibility(View.VISIBLE);
                     });
                 }
             }, "AbodehFullBundleInstaller").start();
@@ -3097,10 +3098,19 @@ public class SetupActivity extends Activity {
         retryLp.topMargin = dp(20);
         root.addView(retry, retryLp);
 
+        Button chooseAnother = new Button(this);
+        chooseAnother.setText(R.string.drive_import_choose_another);
+        chooseAnother.setVisibility(View.GONE);
+        LinearLayout.LayoutParams chooseLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        chooseLp.topMargin = dp(8);
+        root.addView(chooseAnother, chooseLp);
+
         Runnable startImport = () -> {
             if (driveImportStarted) return;
             driveImportStarted = true;
             retry.setVisibility(View.GONE);
+            chooseAnother.setVisibility(View.GONE);
             status.setText(R.string.drive_import_scanning);
             detail.setText(R.string.drive_import_keep_open);
             progress.setProgress(0);
@@ -3146,6 +3156,12 @@ public class SetupActivity extends Activity {
         };
 
         retry.setOnClickListener(v -> startImport.run());
+        chooseAnother.setOnClickListener(v -> {
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit()
+                .remove(PREF_DRIVE_TREE_URI).apply();
+            driveImportStarted = false;
+            onImportFromDrive();
+        });
         startImport.run();
     }
 

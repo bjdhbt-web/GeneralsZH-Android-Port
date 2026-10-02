@@ -98,22 +98,22 @@ final class DriveFolderInstaller {
             throw new IOException("The selected Drive location is not a readable folder.");
         }
 
-        DocumentFile zhSource = findDirectoryIgnoreCase(picked, ZH_FOLDER);
-        DocumentFile baseSource = findDirectoryIgnoreCase(picked, BASE_FOLDER);
-
-        // Also accept selecting the parent one level above the expected container.
-        if (zhSource == null || baseSource == null) {
-            for (DocumentFile child : picked.listFiles()) {
-                if (!child.isDirectory()) continue;
-                if (zhSource == null) zhSource = findDirectoryIgnoreCase(child, ZH_FOLDER);
-                if (baseSource == null) baseSource = findDirectoryIgnoreCase(child, BASE_FOLDER);
-                if (zhSource != null && baseSource != null) break;
-            }
-        }
+        // Do not depend on the visible Drive folder names. Drive providers,
+        // shortcuts and localized clients can expose the same tree with a
+        // different display name. Detect each game by its archive signature
+        // and search a few levels below the selected folder.
+        GameSources sources = discoverGameSources(picked, 4);
+        DocumentFile zhSource = sources.zeroHour;
+        DocumentFile baseSource = sources.generals;
 
         if (zhSource == null || baseSource == null) {
+            String selected = safeName(picked);
+            String found = zhSource != null
+                ? "Zero Hour only"
+                : baseSource != null ? "Generals only" : "neither game";
             throw new IOException(
-                "Select the folder that contains both '" + ZH_FOLDER + "' and '" + BASE_FOLDER + "'.");
+                "Could not find both game folders under '" + selected
+                + "' (" + found + "). Select the parent folder that contains both games.");
         }
 
         File root = rootDir(context);
@@ -228,6 +228,60 @@ final class DriveFolderInstaller {
             done += copied;
         }
         return done;
+    }
+
+    private static final class GameSources {
+        DocumentFile zeroHour;
+        DocumentFile generals;
+    }
+
+    private static GameSources discoverGameSources(DocumentFile root, int maxDepth) {
+        GameSources out = new GameSources();
+        discoverInto(root, 0, maxDepth, out);
+        return out;
+    }
+
+    private static void discoverInto(DocumentFile dir, int depth, int maxDepth, GameSources out) {
+        if (dir == null || !dir.isDirectory() || (out.zeroHour != null && out.generals != null)) {
+            return;
+        }
+
+        if (out.zeroHour == null && isZeroHourFolder(dir)) {
+            out.zeroHour = dir;
+        }
+        if (out.generals == null && isBaseGeneralsFolder(dir)) {
+            out.generals = dir;
+        }
+        if ((out.zeroHour != null && out.generals != null) || depth >= maxDepth) {
+            return;
+        }
+
+        for (DocumentFile child : dir.listFiles()) {
+            if (!child.isDirectory()) continue;
+            String name = safeName(child);
+            if (shouldSkipDirectory(name)) continue;
+            discoverInto(child, depth + 1, maxDepth, out);
+            if (out.zeroHour != null && out.generals != null) return;
+        }
+    }
+
+    private static boolean isZeroHourFolder(DocumentFile dir) {
+        return hasFileIgnoreCase(dir, "INIZH.big");
+    }
+
+    private static boolean isBaseGeneralsFolder(DocumentFile dir) {
+        return hasFileIgnoreCase(dir, "INI.big")
+            && hasFileIgnoreCase(dir, "Textures.big")
+            && hasFileIgnoreCase(dir, "W3D.big");
+    }
+
+    private static boolean hasFileIgnoreCase(DocumentFile dir, String wanted) {
+        for (DocumentFile child : dir.listFiles()) {
+            if (child.isFile() && wanted.equalsIgnoreCase(safeName(child))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static DocumentFile findDirectoryIgnoreCase(DocumentFile parent, String wanted) {

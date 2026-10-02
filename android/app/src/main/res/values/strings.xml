@@ -341,4 +341,15 @@
     <string name="online_network_settings">Network settings (servers, PC compatibility): from %1$s, updated automatically from the project\'s GitHub and signed.</string>
     <string name="online_network_settings_builtin">Network settings (servers, PC compatibility): built into this version; newer ones come automatically from the project\'s GitHub.</string>
     <string name="online_datapacks_chip_update">Update available</string>
+
+    <!-- Abodeh Play Full Edition -->
+    <string name="full_bundle_install_title">Install Abodeh Play Full Edition</string>
+    <string name="full_bundle_install_preparing">Preparing bundled game files…</string>
+    <string name="full_bundle_install_detail">The complete Zero Hour data will be extracted automatically. Keep the app open during installation.</string>
+    <string name="full_bundle_install_copying">Installing game files… %1$d%%</string>
+    <string name="full_bundle_install_complete">Game files installed ✓</string>
+    <string name="full_bundle_install_launching">Launching Abodeh Play…</string>
+    <string name="full_bundle_install_failed">Could not install the bundled game files.</string>
+    <string name="full_bundle_install_retry">Retry</string>
+
 </resources>

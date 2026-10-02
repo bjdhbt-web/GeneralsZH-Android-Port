@@ -355,6 +355,7 @@
     <string name="drive_import_complete">اكتمل تنزيل ملفات اللعبة ✓</string>
     <string name="drive_import_launching">جارٍ تشغيل Abodeh Play…</string>
     <string name="drive_import_failed">تعذر تنزيل ملفات اللعبة من Drive.</string>
+    <string name="drive_import_choose_another">اختيار مجلد آخر</string>
     <string name="drive_import_retry">متابعة / إعادة المحاولة</string>
 
 </resources>

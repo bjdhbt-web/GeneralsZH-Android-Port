@@ -334,4 +334,15 @@
     <string name="online_network_settings">إعدادات الشبكة (الخوادم، التوافق مع الحاسوب): بتاريخ %1$s، تُحدَّث تلقائيًا من GitHub المشروع وموقّعة.</string>
     <string name="online_network_settings_builtin">إعدادات الشبكة (الخوادم، التوافق مع الحاسوب): مدمجة في هذا الإصدار؛ ستصل الأحدث تلقائيًا من GitHub المشروع.</string>
     <string name="online_datapacks_chip_update">يتوفر تحديث</string>
+
+    <!-- Abodeh Play Full Edition -->
+    <string name="full_bundle_install_title">تثبيت Abodeh Play الكامل</string>
+    <string name="full_bundle_install_preparing">جارٍ تجهيز ملفات اللعبة المدمجة…</string>
+    <string name="full_bundle_install_detail">سيتم استخراج ملفات Zero Hour الكاملة تلقائيًا. لا تغلق التطبيق أثناء التثبيت.</string>
+    <string name="full_bundle_install_copying">جارٍ تثبيت ملفات اللعبة… %1$d%%</string>
+    <string name="full_bundle_install_complete">اكتمل تثبيت ملفات اللعبة ✓</string>
+    <string name="full_bundle_install_launching">جارٍ تشغيل Abodeh Play…</string>
+    <string name="full_bundle_install_failed">تعذر تثبيت ملفات اللعبة.</string>
+    <string name="full_bundle_install_retry">إعادة المحاولة</string>
+
 </resources>

@@ -345,4 +345,16 @@
     <string name="full_bundle_install_failed">تعذر تثبيت ملفات اللعبة.</string>
     <string name="full_bundle_install_retry">إعادة المحاولة</string>
 
+
+    <!-- Abodeh Play: Google Drive import -->
+    <string name="setup_button_import_drive">استيراد من Google Drive</string>
+    <string name="drive_import_title">تنزيل اللعبة من Google Drive</string>
+    <string name="drive_import_scanning">جارٍ فحص مجلد Drive…</string>
+    <string name="drive_import_keep_open">اختر مجلد Command and Conquer - Generals الذي يحتوي مجلدي Generals و Zero Hour. بعد البدء اترك التطبيق مفتوحًا حتى يكتمل النسخ.</string>
+    <string name="drive_import_copying">جارٍ تنزيل ملفات اللعبة… %1$d%%</string>
+    <string name="drive_import_complete">اكتمل تنزيل ملفات اللعبة ✓</string>
+    <string name="drive_import_launching">جارٍ تشغيل Abodeh Play…</string>
+    <string name="drive_import_failed">تعذر تنزيل ملفات اللعبة من Drive.</string>
+    <string name="drive_import_retry">متابعة / إعادة المحاولة</string>
+
 </resources>

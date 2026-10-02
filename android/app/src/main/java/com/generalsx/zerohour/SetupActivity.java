@@ -126,6 +126,7 @@ public class SetupActivity extends Activity {
     private static final String[] REQUIRED_GAME_FILES = { "INIZH.big", "INI.big" };
 
     private TextView statusText;
+    private volatile boolean fullBundleInstallStarted;
 
     @Override
     protected void attachBaseContext(android.content.Context newBase) {
@@ -142,6 +143,18 @@ public class SetupActivity extends Activity {
         // rotating Setup at all.
         super.onCreate(savedInstanceState);
         setTitle(R.string.setup_window_title);
+
+        // Abodeh Play Full Edition: a privately built APK may carry the user's
+        // own Zero Hour installation in assets/fullgame. First launch installs
+        // it in the background with progress; later launches activate that
+        // folder automatically, so Select Game Folder is not required.
+        if (BundledGameData.isBundled(this)) {
+            if (!BundledGameData.isInstalled(this)) {
+                showFullBundleInstaller();
+                return;
+            }
+            BundledGameData.activateIfInstalled(this);
+        }
 
         // GeneralsX @feature Android port launcher-ui-2026 08/09/2026 Which
         // bottom-navigation section to open on. Survives the recreate() the
@@ -162,6 +175,108 @@ public class SetupActivity extends Activity {
         } catch (Throwable t) {
             buildFallbackUi(t);
         }
+    }
+
+
+    private void showFullBundleInstaller() {
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(24);
+        root.setPadding(pad, pad, pad, pad);
+        scroll.addView(root, new ScrollView.LayoutParams(
+            ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT));
+        setContentView(scroll);
+        InsetUtil.applySafeInsets(scroll);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.full_bundle_install_title);
+        title.setTextSize(26);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        root.addView(title);
+
+        TextView status = new TextView(this);
+        status.setText(R.string.full_bundle_install_preparing);
+        status.setTextSize(17);
+        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        statusLp.topMargin = dp(18);
+        root.addView(status, statusLp);
+
+        android.widget.ProgressBar progress = new android.widget.ProgressBar(
+            this, null, android.R.attr.progressBarStyleHorizontal);
+        progress.setMax(1000);
+        progress.setProgress(0);
+        LinearLayout.LayoutParams progressLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(18));
+        progressLp.topMargin = dp(18);
+        root.addView(progress, progressLp);
+
+        TextView detail = new TextView(this);
+        detail.setText(R.string.full_bundle_install_detail);
+        detail.setTextSize(14);
+        LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        detailLp.topMargin = dp(12);
+        root.addView(detail, detailLp);
+
+        Button retry = new Button(this);
+        retry.setText(R.string.full_bundle_install_retry);
+        retry.setVisibility(View.GONE);
+        LinearLayout.LayoutParams retryLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        retryLp.topMargin = dp(20);
+        root.addView(retry, retryLp);
+
+        Runnable startInstall = () -> {
+            if (fullBundleInstallStarted) return;
+            fullBundleInstallStarted = true;
+            retry.setVisibility(View.GONE);
+            status.setText(R.string.full_bundle_install_preparing);
+            progress.setProgress(0);
+
+            new Thread(() -> {
+                final long[] lastUiBytes = { -8L * 1024L * 1024L };
+                try {
+                    BundledGameData.install(this, (doneBytes, totalBytes, relativePath) -> {
+                        if (doneBytes - lastUiBytes[0] < 8L * 1024L * 1024L && doneBytes < totalBytes) {
+                            return;
+                        }
+                        lastUiBytes[0] = doneBytes;
+                        int value = totalBytes > 0
+                            ? (int) Math.min(1000L, (doneBytes * 1000L) / totalBytes)
+                            : 0;
+                        int percent = value / 10;
+                        runOnUiThread(() -> {
+                            progress.setProgress(value);
+                            status.setText(getString(R.string.full_bundle_install_copying, percent));
+                            detail.setText(relativePath);
+                        });
+                    });
+
+                    runOnUiThread(() -> {
+                        progress.setProgress(1000);
+                        status.setText(R.string.full_bundle_install_complete);
+                        detail.setText(R.string.full_bundle_install_launching);
+                        status.postDelayed(() -> {
+                            startActivity(new Intent(this, GeneralsZHActivity.class));
+                            finish();
+                        }, 500);
+                    });
+                } catch (Throwable t) {
+                    Log.e("AbodehFullBundle", "Full bundle install failed", t);
+                    runOnUiThread(() -> {
+                        fullBundleInstallStarted = false;
+                        status.setText(R.string.full_bundle_install_failed);
+                        detail.setText(String.valueOf(t.getMessage()));
+                        retry.setVisibility(View.VISIBLE);
+                    });
+                }
+            }, "AbodehFullBundleInstaller").start();
+        };
+
+        retry.setOnClickListener(v -> startInstall.run());
+        startInstall.run();
     }
 
     @Override

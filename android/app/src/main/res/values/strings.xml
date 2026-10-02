@@ -364,4 +364,24 @@
     <string name="drive_import_failed">Could not download the game files from Drive.</string>
     <string name="drive_import_retry">Continue / Retry</string>
 
+
+    <!-- Abodeh Play subscription -->
+    <string name="subscription_title">Abodeh Play Subscription</string>
+    <string name="subscription_subtitle">Sign in with your account. The account is permanently bound to the first phone activated.</string>
+    <string name="subscription_username">Username</string>
+    <string name="subscription_password">Password</string>
+    <string name="subscription_login">Sign in</string>
+    <string name="subscription_device_notice">After activation, the account remains bound to this phone even after sign-out or reinstall. Moving to another phone requires an admin device reset.</string>
+    <string name="subscription_checking">Checking subscription…</string>
+    <string name="subscription_signing_in">Signing in and binding device…</string>
+    <string name="subscription_missing_fields">Enter username and password.</string>
+    <string name="subscription_network_required">Internet connection is required to verify the subscription.</string>
+    <string name="subscription_network_error">Could not reach the subscription server.</string>
+    <string name="subscription_device_mismatch">This account is bound to another phone. Contact support for a device reset.</string>
+    <string name="subscription_expired">Subscription expired.</string>
+    <string name="subscription_blocked">Account is blocked.</string>
+    <string name="subscription_invalid_credentials">Invalid username or password.</string>
+    <string name="subscription_rate_limited">Too many attempts. Try again later.</string>
+    <string name="subscription_error">Subscription verification failed.</string>
+
 </resources>

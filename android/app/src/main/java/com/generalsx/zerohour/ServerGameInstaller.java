@@ -89,8 +89,10 @@ final class ServerGameInstaller {
             while (already < entry.size) {
                 int code;
                 try {
+                    final long progressBase = done + already;
+                    final int progressIndex = i + 1;
                     code = downloadRange(active.url, part, already, entry.size, (copied) ->
-                        emit(progress, done + already + copied, total, i + 1, count, entry.path));
+                        emit(progress, progressBase + copied, total, progressIndex, count, entry.path));
                 } catch (IOException e) {
                     throw new IOException("Download failed for " + entry.path + ": " + e.getMessage(), e);
                 }

@@ -264,6 +264,7 @@ public class GeneralsZHActivity extends SDLActivity {
         setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
 
         extractBundledRuntime();
+        BundledGameData.activateIfInstalled(this);
 
         String gamePath = getSavedGamePath();
         boolean haveCustomPath = gamePath != null && SetupActivity.isValidGameFolder(new File(gamePath));

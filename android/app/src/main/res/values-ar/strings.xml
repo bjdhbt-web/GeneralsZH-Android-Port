@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GeneralsZH</string>
+    <string name="app_name">Abodeh Play</string>
     <string name="common_cancel">إلغاء</string>
 
     <!-- SetupActivity: title / fallback -->
-    <string name="setup_window_title">إعدادات GeneralsZH</string>
+    <string name="setup_window_title">إعدادات Abodeh Play</string>
     <string name="setup_title">Command &amp; Conquer Generals: Zero Hour</string>
-    <string name="setup_subtitle">إعدادات أندرويد</string>
+    <string name="setup_subtitle">نسخة أندرويد • Abodeh Play</string>
     <string name="setup_fallback_warning">فشل تحميل واجهة الإعدادات العادية (%1$s). يتم عرض واجهة بديلة بسيطة حتى تتمكن من الوصول إلى السجلات/مجلد اللعبة.</string>
 
     <!-- SetupActivity: Game Folder card -->
@@ -46,6 +46,18 @@
     <string name="setup_button_apply_text_size">تطبيق حجم نص القائمة</string>
     <string name="setup_text_size_help">يُكبّر أو يُصغّر نص معظم أزرار/تسميات القائمة حسب دقة الشاشة. القيمة الافتراضية للعبة هي 70؛ القيم الأعلى تجعل نص القائمة أكبر. يسري المفعول عند تشغيل اللعبة في المرة القادمة، وليس فورًا.</string>
     <string name="setup_toast_text_size_saved">تم الحفظ. سيسري المفعول في المرة القادمة التي تشغّل فيها اللعبة.</string>
+
+
+    <!-- Abodeh Play: بطاقة دقة العرض -->
+    <string name="setup_card_resolution">دقة العرض</string>
+    <string name="setup_resolution_auto_short">تلقائي</string>
+    <string name="setup_resolution_600_short">600p</string>
+    <string name="setup_resolution_720_short">720p</string>
+    <string name="setup_resolution_auto_desc">يستخدم حجم نافذة اللعبة الحقيقي الذي يتم اكتشافه عند التشغيل. أفضل جودة للصورة.</string>
+    <string name="setup_resolution_600_desc">وضع أداء للهواتف المتوسطة. يحافظ على أبعاد شاشة الجهاز ويعرض بارتفاع يقارب 600 بكسل.</string>
+    <string name="setup_resolution_720_desc">وضع متوازن. يحافظ على أبعاد شاشة الجهاز ويعرض بارتفاع يقارب 720 بكسل.</string>
+    <string name="setup_resolution_help">خفض الدقة قد يقلل حمل المعالج الرسومي. خيار «تلقائي» يحذف قيمة Resolution المفروضة ويعيد للمحرك اكتشاف حجم نافذة اللعبة الحقيقي. يسري التغيير عند التشغيل التالي.</string>
+    <string name="setup_toast_resolution_saved">تم حفظ دقة العرض. ستُطبّق عند تشغيل اللعبة في المرة القادمة.</string>
 
     <!-- SetupActivity: Render Backend card -->
     <string name="setup_card_render_backend">خلفية الرسومات</string>
@@ -322,4 +334,58 @@
     <string name="online_network_settings">إعدادات الشبكة (الخوادم، التوافق مع الحاسوب): بتاريخ %1$s، تُحدَّث تلقائيًا من GitHub المشروع وموقّعة.</string>
     <string name="online_network_settings_builtin">إعدادات الشبكة (الخوادم، التوافق مع الحاسوب): مدمجة في هذا الإصدار؛ ستصل الأحدث تلقائيًا من GitHub المشروع.</string>
     <string name="online_datapacks_chip_update">يتوفر تحديث</string>
+
+    <!-- Abodeh Play Full Edition -->
+    <string name="full_bundle_install_title">تثبيت Abodeh Play الكامل</string>
+    <string name="full_bundle_install_preparing">جارٍ تجهيز ملفات اللعبة المدمجة…</string>
+    <string name="full_bundle_install_detail">سيتم استخراج ملفات Zero Hour الكاملة تلقائيًا. لا تغلق التطبيق أثناء التثبيت.</string>
+    <string name="full_bundle_install_copying">جارٍ تثبيت ملفات اللعبة… %1$d%%</string>
+    <string name="full_bundle_install_complete">اكتمل تثبيت ملفات اللعبة ✓</string>
+    <string name="full_bundle_install_launching">جارٍ تشغيل Abodeh Play…</string>
+    <string name="full_bundle_install_failed">تعذر تثبيت ملفات اللعبة.</string>
+    <string name="full_bundle_install_retry">إعادة المحاولة</string>
+
+
+    <!-- Abodeh Play: Google Drive import -->
+    <string name="setup_button_import_drive">استيراد من Google Drive</string>
+    <string name="drive_import_title">تنزيل اللعبة من Google Drive</string>
+    <string name="drive_import_scanning">جارٍ فحص مجلد Drive…</string>
+    <string name="drive_import_keep_open">اختر مجلد Command and Conquer - Generals الذي يحتوي مجلدي Generals و Zero Hour. بعد البدء اترك التطبيق مفتوحًا حتى يكتمل النسخ.</string>
+    <string name="drive_import_copying">جارٍ تنزيل ملفات اللعبة… %1$d%%</string>
+    <string name="drive_import_complete">اكتمل تنزيل ملفات اللعبة ✓</string>
+    <string name="drive_import_launching">جارٍ تشغيل Abodeh Play…</string>
+    <string name="drive_import_failed">تعذر تنزيل ملفات اللعبة من Drive.</string>
+    <string name="drive_import_choose_another">اختيار مجلد آخر</string>
+    <string name="drive_import_retry">متابعة / إعادة المحاولة</string>
+
+
+    <string name="subscription_title">اشتراك Abodeh Play</string>
+    <string name="subscription_subtitle">سجّل الدخول بحسابك. سيتم ربط الحساب بأول هاتف يتم تفعيله عليه.</string>
+    <string name="subscription_username">اسم المستخدم</string>
+    <string name="subscription_password">كلمة المرور</string>
+    <string name="subscription_login">تسجيل الدخول</string>
+    <string name="subscription_device_notice">بعد التفعيل يبقى الحساب مربوطًا بهذا الهاتف. تغيير الهاتف يحتاج إعادة ضبط من الإدارة.</string>
+    <string name="subscription_checking">جارٍ التحقق من الاشتراك…</string>
+    <string name="subscription_signing_in">جارٍ تسجيل الدخول وربط الجهاز…</string>
+    <string name="subscription_missing_fields">أدخل اسم المستخدم وكلمة المرور.</string>
+    <string name="subscription_network_required">يلزم اتصال بالإنترنت للتحقق من الاشتراك.</string>
+    <string name="subscription_network_error">تعذر الاتصال بسيرفر الاشتراكات.</string>
+    <string name="subscription_device_mismatch">هذا الحساب مربوط بهاتف آخر. تواصل مع الإدارة لإعادة ضبط الجهاز.</string>
+    <string name="subscription_expired">انتهت مدة الاشتراك.</string>
+    <string name="subscription_blocked">الحساب موقوف.</string>
+    <string name="subscription_invalid_credentials">اسم المستخدم أو كلمة المرور غير صحيحة.</string>
+    <string name="subscription_rate_limited">محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة.</string>
+    <string name="subscription_error">تعذر التحقق من الاشتراك.</string>
+
+
+    <string name="auto_download_title">تجهيز Abodeh Play</string>
+    <string name="auto_download_preparing">جارٍ تجهيز ملفات اللعبة…</string>
+    <string name="auto_download_detail">سيتم تنزيل الملفات المطلوبة تلقائيًا. يمكنك إعادة المحاولة إذا انقطع الاتصال.</string>
+    <string name="auto_download_progress">جارٍ تنزيل اللعبة… %1$d%%</string>
+    <string name="auto_download_stats">السرعة: %1$s\nالمتبقي: %2$s\n%3$s</string>
+    <string name="auto_download_complete">اكتمل تنزيل اللعبة ✓</string>
+    <string name="auto_download_launching">جارٍ تشغيل Abodeh Play…</string>
+    <string name="auto_download_failed">تعذر إكمال تنزيل اللعبة.</string>
+    <string name="auto_download_retry">متابعة التنزيل</string>
+
 </resources>

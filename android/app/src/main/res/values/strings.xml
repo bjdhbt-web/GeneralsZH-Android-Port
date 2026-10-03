@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GeneralsZH</string>
+    <string name="app_name">Abodeh Play</string>
     <string name="common_cancel">Cancel</string>
 
     <!-- SetupActivity: title / fallback -->
-    <string name="setup_window_title">GeneralsZH Settings</string>
+    <string name="setup_window_title">Abodeh Play Settings</string>
     <string name="setup_title">Command &amp; Conquer Generals: Zero Hour</string>
-    <string name="setup_subtitle">Android Settings</string>
+    <string name="setup_subtitle">Android Edition • Abodeh Play</string>
     <string name="setup_fallback_warning">The normal Settings UI failed to load (%1$s). Showing a basic fallback so you can still get to your logs/game folder.</string>
 
     <!-- SetupActivity: Game Folder card -->
@@ -46,6 +46,18 @@
     <string name="setup_button_apply_text_size">Apply Menu Text Size</string>
     <string name="setup_text_size_help">Scales most menu button/label text for the screen resolution. 70 is the game\'s own default; higher values make menu text bigger. Takes effect the next time you launch the game, not live.</string>
     <string name="setup_toast_text_size_saved">Saved. Takes effect next time you launch the game.</string>
+
+
+    <!-- Abodeh Play: Render Resolution card -->
+    <string name="setup_card_resolution">Render Resolution</string>
+    <string name="setup_resolution_auto_short">Auto</string>
+    <string name="setup_resolution_600_short">600p</string>
+    <string name="setup_resolution_720_short">720p</string>
+    <string name="setup_resolution_auto_desc">Uses the actual game-window size detected at launch. Best image quality.</string>
+    <string name="setup_resolution_600_desc">Performance preset for mid-range phones. Keeps the device aspect ratio and renders at about 600 pixels high.</string>
+    <string name="setup_resolution_720_desc">Balanced preset. Keeps the device aspect ratio and renders at about 720 pixels high.</string>
+    <string name="setup_resolution_help">Lower resolution can reduce GPU load. Auto removes the forced Resolution value and lets the engine detect the real game window again. The change applies on the next launch.</string>
+    <string name="setup_toast_resolution_saved">Render resolution saved. It will apply on the next launch.</string>
 
     <!-- SetupActivity: Render Backend card -->
     <string name="setup_card_render_backend">Render Backend</string>
@@ -329,4 +341,58 @@
     <string name="online_network_settings">Network settings (servers, PC compatibility): from %1$s, updated automatically from the project\'s GitHub and signed.</string>
     <string name="online_network_settings_builtin">Network settings (servers, PC compatibility): built into this version; newer ones come automatically from the project\'s GitHub.</string>
     <string name="online_datapacks_chip_update">Update available</string>
+
+    <!-- Abodeh Play Full Edition -->
+    <string name="full_bundle_install_title">Install Abodeh Play Full Edition</string>
+    <string name="full_bundle_install_preparing">Preparing bundled game files…</string>
+    <string name="full_bundle_install_detail">The complete Zero Hour data will be extracted automatically. Keep the app open during installation.</string>
+    <string name="full_bundle_install_copying">Installing game files… %1$d%%</string>
+    <string name="full_bundle_install_complete">Game files installed ✓</string>
+    <string name="full_bundle_install_launching">Launching Abodeh Play…</string>
+    <string name="full_bundle_install_failed">Could not install the bundled game files.</string>
+    <string name="full_bundle_install_retry">Retry</string>
+
+
+    <!-- Abodeh Play: Google Drive import -->
+    <string name="setup_button_import_drive">Import from Google Drive</string>
+    <string name="drive_import_title">Download game from Google Drive</string>
+    <string name="drive_import_scanning">Scanning the Drive folder…</string>
+    <string name="drive_import_keep_open">Select the Command and Conquer - Generals folder that contains both Generals and Zero Hour. Keep the app open while files are copied.</string>
+    <string name="drive_import_copying">Downloading game files… %1$d%%</string>
+    <string name="drive_import_complete">Game download complete ✓</string>
+    <string name="drive_import_launching">Launching Abodeh Play…</string>
+    <string name="drive_import_failed">Could not download the game files from Drive.</string>
+    <string name="drive_import_choose_another">Choose another folder</string>
+    <string name="drive_import_retry">Continue / Retry</string>
+
+
+    <string name="subscription_title">Abodeh Play Subscription</string>
+    <string name="subscription_subtitle">Sign in with your account. The account is bound to the first phone activated.</string>
+    <string name="subscription_username">Username</string>
+    <string name="subscription_password">Password</string>
+    <string name="subscription_login">Sign in</string>
+    <string name="subscription_device_notice">After activation, the account remains bound to this phone. Moving to another phone requires an admin device reset.</string>
+    <string name="subscription_checking">Checking subscription…</string>
+    <string name="subscription_signing_in">Signing in and binding device…</string>
+    <string name="subscription_missing_fields">Enter username and password.</string>
+    <string name="subscription_network_required">Internet connection is required to verify the subscription.</string>
+    <string name="subscription_network_error">Could not reach the subscription server.</string>
+    <string name="subscription_device_mismatch">This account is bound to another phone. Contact support for a device reset.</string>
+    <string name="subscription_expired">Subscription expired.</string>
+    <string name="subscription_blocked">Account is blocked.</string>
+    <string name="subscription_invalid_credentials">Invalid username or password.</string>
+    <string name="subscription_rate_limited">Too many attempts. Try again later.</string>
+    <string name="subscription_error">Subscription verification failed.</string>
+
+
+    <string name="auto_download_title">Preparing Abodeh Play</string>
+    <string name="auto_download_preparing">Preparing game files…</string>
+    <string name="auto_download_detail">Required files will download automatically. You can resume if the connection is interrupted.</string>
+    <string name="auto_download_progress">Downloading game… %1$d%%</string>
+    <string name="auto_download_stats">Speed: %1$s\nRemaining: %2$s\n%3$s</string>
+    <string name="auto_download_complete">Game download complete ✓</string>
+    <string name="auto_download_launching">Launching Abodeh Play…</string>
+    <string name="auto_download_failed">Could not complete the game download.</string>
+    <string name="auto_download_retry">Resume download</string>
+
 </resources>

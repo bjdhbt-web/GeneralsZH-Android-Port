@@ -108,14 +108,30 @@ public class SubscriptionGateActivity extends Activity {
         new Thread(() -> {
             try {
                 SubscriptionApi.Result r = SubscriptionApi.validate(this);
-                runOnUiThread(() -> {
-                    if (r.ok) {
-                        saveAndEnter(r);
-                    } else {
+                if (r.ok) {
+                    SubscriptionManager.saveSession(
+                        this,
+                        SubscriptionManager.token(this),
+                        r.username != null ? r.username : SubscriptionManager.username(this),
+                        r.subscriptionExpires,
+                        r.offlineUntil,
+                        "active");
+                    SubscriptionApi.Result manifest = SubscriptionApi.gameManifest(this);
+                    runOnUiThread(() -> {
+                        if (manifest.ok) {
+                            SubscriptionManager.saveManifestSummary(
+                                this, manifest.manifestVersion, manifest.manifestFileCount);
+                            enterApp();
+                        } else {
+                            setBusy(false, messageFor(manifest));
+                        }
+                    });
+                } else {
+                    runOnUiThread(() -> {
                         SubscriptionManager.clearSession(this);
                         setBusy(false, messageFor(r));
-                    }
-                });
+                    });
+                }
             } catch (Throwable t) {
                 runOnUiThread(() -> {
                     if (SubscriptionManager.hasValidOfflineLease(this)) {
@@ -145,15 +161,28 @@ public class SubscriptionGateActivity extends Activity {
                     runOnUiThread(() -> setBusy(false, messageFor(challenge)));
                     return;
                 }
-                SubscriptionApi.Result result = SubscriptionApi.login(
-                    this, u, p, challenge.challengeId, challenge.challenge);
-                runOnUiThread(() -> {
-                    if (result.ok && result.token != null) {
-                        saveAndEnter(result);
-                    } else {
-                        setBusy(false, messageFor(result));
-                    }
-                });
+                SubscriptionApi.Result result = SubscriptionApi.login(this, u, p, challenge);
+                if (result.ok && result.token != null) {
+                    SubscriptionManager.saveSession(
+                        this,
+                        result.token,
+                        result.username != null ? result.username : u,
+                        result.subscriptionExpires,
+                        result.offlineUntil,
+                        "active");
+                    SubscriptionApi.Result manifest = SubscriptionApi.gameManifest(this);
+                    runOnUiThread(() -> {
+                        if (manifest.ok) {
+                            SubscriptionManager.saveManifestSummary(
+                                this, manifest.manifestVersion, manifest.manifestFileCount);
+                            enterApp();
+                        } else {
+                            setBusy(false, messageFor(manifest));
+                        }
+                    });
+                } else {
+                    runOnUiThread(() -> setBusy(false, messageFor(result)));
+                }
             } catch (Throwable t) {
                 runOnUiThread(() -> setBusy(false, getString(R.string.subscription_network_error)));
             }

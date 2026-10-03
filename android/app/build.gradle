@@ -73,8 +73,16 @@ android {
         // already on your device.
         // Scheme: versionCode = major*10000 + minor*100 + patch, so the
         // number always sorts the same way as versionName (1.2.0 -> 10200).
-        versionCode (project.hasProperty('androidVersionCode') ? (project.androidVersionCode as Integer) : 10305)
-        versionName (project.hasProperty('androidVersionName') ? project.androidVersionName : '1.3.0-abodeh-drive5')
+        versionCode (project.hasProperty('androidVersionCode') ? (project.androidVersionCode as Integer) : 10306)
+        versionName (project.hasProperty('androidVersionName') ? project.androidVersionName : '1.3.0-abodeh-auto1')
+
+        // Auto Download Edition. The endpoint returns a per-session manifest
+        // whose file URLs can be short-lived R2 presigned GET URLs.
+        def autoManifestUrl = project.hasProperty('abodehGameManifestUrl')
+            ? project.abodehGameManifestUrl
+            : 'https://syscomx.net/wp-json/abodeh-play/v1/game-manifest'
+        buildConfigField 'String', 'AUTO_GAME_MANIFEST_URL', '"' + autoManifestUrl + '"'
+
         ndk {
             abiFilters 'arm64-v8a'
         }

@@ -121,10 +121,14 @@ final class HttpGameInstaller {
                 existing = 0;
             }
 
+            final long doneBefore = done;
+            final long transferredBefore = transferredSinceStart;
+            final long existingBefore = existing;
             long copied = download(url, part, existing, size, (written) -> {
                 if (progress != null) {
-                    long nowDone = done + written;
-                    long rate = currentRate(started, transferredSinceStart + written);
+                    long nowDone = doneBefore + written;
+                    long newlyTransferred = Math.max(0, written - existingBefore);
+                    long rate = currentRate(started, transferredBefore + newlyTransferred);
                     progress.onProgress(nowDone, total, path, rate);
                 }
             });

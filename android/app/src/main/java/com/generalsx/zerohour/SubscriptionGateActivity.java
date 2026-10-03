@@ -172,7 +172,14 @@ public class SubscriptionGateActivity extends Activity {
     }
 
     private void enterApp() {
-        startActivity(new Intent(this, SetupActivity.class));
+        if (HttpGameInstaller.isInstalled(this)) {
+            HttpGameInstaller.activateIfInstalled(this);
+            startActivity(new Intent(this, GeneralsZHActivity.class));
+        } else {
+            // SetupActivity immediately enters the automatic downloader when
+            // the authenticated game data is not installed yet.
+            startActivity(new Intent(this, SetupActivity.class));
+        }
         finish();
     }
 

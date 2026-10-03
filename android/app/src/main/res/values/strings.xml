@@ -384,4 +384,19 @@
     <string name="subscription_rate_limited">Too many attempts. Try again later.</string>
     <string name="subscription_error">Subscription verification failed.</string>
 
+
+    <!-- Abodeh Play: private server game-data download -->
+    <string name="server_game_install_button">Download &amp; Install Generals</string>
+    <string name="server_game_update_button">Check / Update Game Files</string>
+    <string name="server_game_install_title">Install Generals + Zero Hour</string>
+    <string name="server_game_install_preparing">Connecting to Abodeh Play…</string>
+    <string name="server_game_install_detail">Your game files will be downloaded automatically from the private server. Interrupted downloads can resume.</string>
+    <string name="server_game_install_downloading">Downloading game files… %1$d%%</string>
+    <string name="server_game_install_file">File %1$d of %2$d
+%3$s</string>
+    <string name="server_game_install_complete">Game files installed ✓</string>
+    <string name="server_game_install_ready">Generals and Zero Hour are ready to launch.</string>
+    <string name="server_game_install_failed">Could not download or install the game files.</string>
+    <string name="server_game_install_retry">Continue / Retry</string>
+
 </resources>

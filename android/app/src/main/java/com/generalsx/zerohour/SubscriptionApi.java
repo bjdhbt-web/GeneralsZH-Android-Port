@@ -89,14 +89,14 @@ final class SubscriptionApi {
         body.put("signature", DeviceIdentity.signChallenge(challenge.challenge));
         body.put("protocol", PROTOCOL);
         body.put("password_proof", passwordProof);
-        body.put("app_version", BuildConfig.VERSION_NAME);
+        body.put("app_version", appVersion(ctx));
         return request("POST", "/login", body, null, null);
     }
 
     static Result validate(Context ctx) throws Exception {
         JSONObject body = new JSONObject();
         body.put("device_hash", DeviceIdentity.deviceHash(ctx));
-        body.put("app_version", BuildConfig.VERSION_NAME);
+        body.put("app_version", appVersion(ctx));
         return request("POST", "/session", body, SubscriptionManager.token(ctx), null);
     }
 
@@ -109,6 +109,16 @@ final class SubscriptionApi {
     static Result gameManifest(Context ctx) throws Exception {
         String deviceHash = DeviceIdentity.deviceHash(ctx);
         return request("GET", "/game-manifest", null, SubscriptionManager.token(ctx), deviceHash);
+    }
+
+    private static String appVersion(Context ctx) {
+        try {
+            android.content.pm.PackageInfo info = ctx.getPackageManager()
+                .getPackageInfo(ctx.getPackageName(), 0);
+            return info.versionName != null ? info.versionName : "android";
+        } catch (Exception e) {
+            return "android";
+        }
     }
 
     private static byte[] derivePasswordVerifier(String password, byte[] salt, int iterations) throws Exception {
@@ -133,7 +143,7 @@ final class SubscriptionApi {
         c.setReadTimeout(30000);
         c.setRequestMethod(method);
         c.setRequestProperty("Accept", "application/json");
-        c.setRequestProperty("User-Agent", "AbodehPlay/" + BuildConfig.VERSION_NAME);
+        c.setRequestProperty("User-Agent", "AbodehPlay/Android");
         if (bearer != null && !bearer.isEmpty()) {
             c.setRequestProperty("Authorization", "Bearer " + bearer);
         }

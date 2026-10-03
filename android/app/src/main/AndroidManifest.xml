@@ -88,7 +88,7 @@
 
         <activity
             android:name=".GeneralsZHActivity"
-            android:exported="true"
+            android:exported="false"
             android:screenOrientation="landscape"
             android:launchMode="singleInstance"
             android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
@@ -133,7 +133,7 @@
              <application>, which is why the overrides that used to sit here are
              gone. setup_window_title is still the title shown inside the screen. -->
         <activity
-            android:name=".SetupActivity"
+            android:name=".SubscriptionGateActivity"
             android:exported="true"
             android:theme="@style/Theme.GeneralsZHSettings"
             android:configChanges="orientation|screenSize|keyboardHidden">
@@ -142,6 +142,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".SetupActivity"
+            android:exported="false"
+            android:theme="@style/Theme.GeneralsZHSettings"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
 
         <activity
             android:name=".FolderPickerActivity"

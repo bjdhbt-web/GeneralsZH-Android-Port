@@ -100,11 +100,15 @@ final class HttpGameInstaller {
             JSONObject item = files.getJSONObject(i);
             String path = item.getString("path");
             long size = item.getLong("size");
-            String sha256 = item.getString("sha256").toLowerCase(Locale.ROOT);
+            String sha256 = item.optString("sha256", "").toLowerCase(Locale.ROOT);
+            String md5 = item.optString("md5", "").toLowerCase(Locale.ROOT);
+            if (sha256.isEmpty() && md5.isEmpty()) {
+                throw new IllegalStateException("Manifest has no checksum for " + path);
+            }
             String url = item.getString("url");
 
             File dest = safeFile(root, path);
-            if (dest.isFile() && dest.length() == size && sha256.equals(sha256(dest))) {
+            if (dest.isFile() && dest.length() == size && checksumMatches(dest, sha256, md5)) {
                 if (progress != null) progress.onProgress(done, total, path, currentRate(started, transferredSinceStart));
                 continue;
             }
@@ -137,9 +141,9 @@ final class HttpGameInstaller {
             if (part.length() != size) {
                 throw new IllegalStateException("Incomplete file: " + path);
             }
-            if (!sha256.equals(sha256(part))) {
+            if (!checksumMatches(part, sha256, md5)) {
                 part.delete();
-                throw new IllegalStateException("SHA-256 mismatch: " + path);
+                throw new IllegalStateException("Checksum mismatch: " + path);
             }
             if (dest.exists() && !dest.delete()) {
                 throw new IllegalStateException("Could not replace " + path);
@@ -234,8 +238,9 @@ final class HttpGameInstaller {
             JSONObject item = files.getJSONObject(i);
             File dest = safeFile(root, item.getString("path"));
             long size = item.getLong("size");
-            String hash = item.getString("sha256").toLowerCase(Locale.ROOT);
-            if (dest.isFile() && dest.length() == size && hash.equals(sha256(dest))) {
+            String sha256 = item.optString("sha256", "").toLowerCase(Locale.ROOT);
+            String md5 = item.optString("md5", "").toLowerCase(Locale.ROOT);
+            if (dest.isFile() && dest.length() == size && checksumMatches(dest, sha256, md5)) {
                 done += size;
             }
         }
@@ -250,6 +255,23 @@ final class HttpGameInstaller {
             throw new SecurityException("Unsafe manifest path.");
         }
         return f;
+    }
+
+    private static boolean checksumMatches(File file, String sha256, String md5) throws Exception {
+        if (sha256 != null && !sha256.isEmpty()) return sha256.equals(digest(file, "SHA-256"));
+        return md5 != null && !md5.isEmpty() && md5.equals(digest(file, "MD5"));
+    }
+
+    private static String digest(File file, String algorithm) throws Exception {
+        MessageDigest md = MessageDigest.getInstance(algorithm);
+        try (InputStream in = new BufferedInputStream(new FileInputStream(file), BUFFER)) {
+            byte[] buf = new byte[BUFFER];
+            int n;
+            while ((n = in.read(buf)) > 0) md.update(buf, 0, n);
+        }
+        StringBuilder b = new StringBuilder(md.getDigestLength() * 2);
+        for (byte v : md.digest()) b.append(String.format(Locale.ROOT, "%02x", v & 0xff));
+        return b.toString();
     }
 
     private static String sha256(File file) throws Exception {

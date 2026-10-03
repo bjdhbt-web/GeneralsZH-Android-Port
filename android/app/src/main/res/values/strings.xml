@@ -365,4 +365,34 @@
     <string name="drive_import_choose_another">Choose another folder</string>
     <string name="drive_import_retry">Continue / Retry</string>
 
+
+    <string name="subscription_title">Abodeh Play Subscription</string>
+    <string name="subscription_subtitle">Sign in with your account. The account is bound to the first phone activated.</string>
+    <string name="subscription_username">Username</string>
+    <string name="subscription_password">Password</string>
+    <string name="subscription_login">Sign in</string>
+    <string name="subscription_device_notice">After activation, the account remains bound to this phone. Moving to another phone requires an admin device reset.</string>
+    <string name="subscription_checking">Checking subscription…</string>
+    <string name="subscription_signing_in">Signing in and binding device…</string>
+    <string name="subscription_missing_fields">Enter username and password.</string>
+    <string name="subscription_network_required">Internet connection is required to verify the subscription.</string>
+    <string name="subscription_network_error">Could not reach the subscription server.</string>
+    <string name="subscription_device_mismatch">This account is bound to another phone. Contact support for a device reset.</string>
+    <string name="subscription_expired">Subscription expired.</string>
+    <string name="subscription_blocked">Account is blocked.</string>
+    <string name="subscription_invalid_credentials">Invalid username or password.</string>
+    <string name="subscription_rate_limited">Too many attempts. Try again later.</string>
+    <string name="subscription_error">Subscription verification failed.</string>
+
+
+    <string name="auto_download_title">Preparing Abodeh Play</string>
+    <string name="auto_download_preparing">Preparing game files…</string>
+    <string name="auto_download_detail">Required files will download automatically. You can resume if the connection is interrupted.</string>
+    <string name="auto_download_progress">Downloading game… %1$d%%</string>
+    <string name="auto_download_stats">Speed: %1$s\nRemaining: %2$s\n%3$s</string>
+    <string name="auto_download_complete">Game download complete ✓</string>
+    <string name="auto_download_launching">Launching Abodeh Play…</string>
+    <string name="auto_download_failed">Could not complete the game download.</string>
+    <string name="auto_download_retry">Resume download</string>
+
 </resources>

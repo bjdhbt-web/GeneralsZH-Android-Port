@@ -130,6 +130,7 @@ public class SetupActivity extends Activity {
     private TextView statusText;
     private volatile boolean fullBundleInstallStarted;
     private volatile boolean driveImportStarted;
+    private volatile boolean serverInstallStarted;
 
     @Override
     protected void attachBaseContext(android.content.Context newBase) {
@@ -546,7 +547,15 @@ public class SetupActivity extends Activity {
     // ------------------------------------------------------------ Home page
 
     private void buildHomeSection(LinearLayout page) {
-        // The one thing this app exists to do, as the first thing on it.
+        // Abodeh Play: the subscription backend now owns the private game-data
+        // manifest and signed downloads. Keep install/update as the first action.
+        boolean serverGameInstalled = ServerGameInstaller.isInstalled(this);
+        UiKit.button(page, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_download,
+            getString(serverGameInstalled
+                ? R.string.server_game_update_button
+                : R.string.server_game_install_button),
+            this::showServerGameInstaller);
+
         UiKit.button(page, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_play,
             getString(R.string.setup_button_launch_game), this::onLaunchGame);
 
@@ -561,6 +570,8 @@ public class SetupActivity extends Activity {
             getString(R.string.setup_button_select_game_folder), this::onSelectGameFolder);
         UiKit.button(folder, UiKit.BTN_TONAL, R.drawable.ic_gzh_folder,
             getString(R.string.setup_button_select_base_generals), this::onSelectBaseGeneralsFolder);
+        UiKit.button(folder, UiKit.BTN_TONAL, R.drawable.ic_gzh_download,
+            getString(R.string.setup_button_import_drive), this::onImportFromDrive);
         UiKit.button(folder, UiKit.BTN_DANGER, R.drawable.ic_gzh_broom,
             getString(R.string.setup_button_clear_game_folder), this::onClearGameFolder);
         if (getBaseGeneralsPath() != null) {
@@ -3014,6 +3025,113 @@ public class SetupActivity extends Activity {
     }
 
     private static final int REQUEST_LEGACY_STORAGE_PERMISSION = 1003;
+
+
+    private void showServerGameInstaller() {
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(24);
+        root.setPadding(pad, pad, pad, pad);
+        scroll.addView(root, new ScrollView.LayoutParams(
+            ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT));
+        setContentView(scroll);
+        InsetUtil.applySafeInsets(scroll);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.server_game_install_title);
+        title.setTextSize(26);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        root.addView(title);
+
+        TextView status = new TextView(this);
+        status.setText(R.string.server_game_install_preparing);
+        status.setTextSize(17);
+        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        statusLp.topMargin = dp(18);
+        root.addView(status, statusLp);
+
+        android.widget.ProgressBar progress = new android.widget.ProgressBar(
+            this, null, android.R.attr.progressBarStyleHorizontal);
+        progress.setMax(1000);
+        progress.setProgress(0);
+        LinearLayout.LayoutParams progressLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(18));
+        progressLp.topMargin = dp(18);
+        root.addView(progress, progressLp);
+
+        TextView detail = new TextView(this);
+        detail.setText(R.string.server_game_install_detail);
+        detail.setTextSize(14);
+        detail.setTextIsSelectable(true);
+        LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        detailLp.topMargin = dp(12);
+        root.addView(detail, detailLp);
+
+        Button retry = new Button(this);
+        retry.setText(R.string.server_game_install_retry);
+        retry.setVisibility(View.GONE);
+        LinearLayout.LayoutParams retryLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        retryLp.topMargin = dp(20);
+        root.addView(retry, retryLp);
+
+        Runnable startInstall = () -> {
+            if (serverInstallStarted) return;
+            serverInstallStarted = true;
+            retry.setVisibility(View.GONE);
+            status.setText(R.string.server_game_install_preparing);
+            detail.setText(R.string.server_game_install_detail);
+            progress.setProgress(0);
+
+            new Thread(() -> {
+                final long[] lastUiBytes = { -4L * 1024L * 1024L };
+                try {
+                    ServerGameInstaller.install(this,
+                        (doneBytes, totalBytes, fileIndex, fileCount, relativePath) -> {
+                            if (doneBytes - lastUiBytes[0] < 4L * 1024L * 1024L
+                                    && doneBytes < totalBytes) {
+                                return;
+                            }
+                            lastUiBytes[0] = doneBytes;
+                            int value = totalBytes > 0
+                                ? (int) Math.min(1000L, (doneBytes * 1000L) / totalBytes)
+                                : 0;
+                            int percent = value / 10;
+                            runOnUiThread(() -> {
+                                progress.setProgress(value);
+                                status.setText(getString(
+                                    R.string.server_game_install_downloading, percent));
+                                detail.setText(getString(
+                                    R.string.server_game_install_file,
+                                    fileIndex, fileCount, relativePath));
+                            });
+                        });
+
+                    runOnUiThread(() -> {
+                        serverInstallStarted = false;
+                        progress.setProgress(1000);
+                        status.setText(R.string.server_game_install_complete);
+                        detail.setText(R.string.server_game_install_ready);
+                        status.postDelayed(this::recreate, 800);
+                    });
+                } catch (Throwable t) {
+                    Log.e("AbodehServerInstall", "Server game install failed", t);
+                    runOnUiThread(() -> {
+                        serverInstallStarted = false;
+                        status.setText(R.string.server_game_install_failed);
+                        detail.setText(String.valueOf(t.getMessage()));
+                        retry.setVisibility(View.VISIBLE);
+                    });
+                }
+            }, "AbodehServerGameInstaller").start();
+        };
+
+        retry.setOnClickListener(v -> startInstall.run());
+        startInstall.run();
+    }
 
 
     private void onImportFromDrive() {

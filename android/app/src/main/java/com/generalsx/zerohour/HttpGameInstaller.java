@@ -78,7 +78,7 @@ final class HttpGameInstaller {
 
     static void install(Context context, String manifestUrl, String bearerToken, Progress progress)
             throws Exception {
-        JSONObject manifest = fetchManifest(manifestUrl, bearerToken);
+        JSONObject manifest = fetchManifest(context, manifestUrl, bearerToken);
         JSONArray files = manifest.getJSONArray("files");
 
         long total = 0;
@@ -199,7 +199,7 @@ final class HttpGameInstaller {
         return Math.max(0, written - existing);
     }
 
-    private static JSONObject fetchManifest(String manifestUrl, String bearerToken) throws Exception {
+    private static JSONObject fetchManifest(Context context, String manifestUrl, String bearerToken) throws Exception {
         HttpURLConnection c = (HttpURLConnection) new URL(manifestUrl).openConnection();
         c.setConnectTimeout(15000);
         c.setReadTimeout(20000);
@@ -207,6 +207,7 @@ final class HttpGameInstaller {
         if (bearerToken != null && !bearerToken.isEmpty()) {
             c.setRequestProperty("Authorization", "Bearer " + bearerToken);
         }
+        c.setRequestProperty("X-Abodeh-Device", DeviceIdentity.deviceHash(context));
 
         int status = c.getResponseCode();
         if (status != HttpURLConnection.HTTP_OK) {

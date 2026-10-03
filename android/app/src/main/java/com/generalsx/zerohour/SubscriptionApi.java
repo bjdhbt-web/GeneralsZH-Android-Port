@@ -14,6 +14,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 import javax.crypto.Mac;
@@ -24,6 +27,39 @@ import javax.crypto.spec.SecretKeySpec;
 final class SubscriptionApi {
     private static final int PROTOCOL = 2;
     private static final int EXPECTED_KDF_ITERATIONS = 600000;
+
+    static final class ManifestEntry {
+        final String path;
+        final long size;
+        final String md5;
+        final String url;
+
+        ManifestEntry(String path, long size, String md5, String url) {
+            this.path = path;
+            this.size = size;
+            this.md5 = md5;
+            this.url = url;
+        }
+    }
+
+    static final class Manifest {
+        final String version;
+        final long expiresAt;
+        final List<ManifestEntry> files;
+
+        Manifest(String version, long expiresAt, List<ManifestEntry> files) {
+            this.version = version;
+            this.expiresAt = expiresAt;
+            this.files = Collections.unmodifiableList(files);
+        }
+
+        ManifestEntry find(String path) {
+            for (ManifestEntry entry : files) {
+                if (entry.path.equals(path)) return entry;
+            }
+            return null;
+        }
+    }
 
     static final class Result {
         boolean ok;
@@ -41,6 +77,7 @@ final class SubscriptionApi {
         int httpStatus;
         String manifestVersion;
         int manifestFileCount;
+        Manifest manifest;
     }
 
     private SubscriptionApi() {}
@@ -179,8 +216,28 @@ final class SubscriptionApi {
         r.subscriptionExpires = json.optLong("subscription_expires", 0);
         r.offlineUntil = json.optLong("offline_until", 0);
         r.manifestVersion = json.optString("version", null);
+
         JSONArray files = json.optJSONArray("files");
         r.manifestFileCount = files != null ? files.length() : 0;
+        if (r.ok && files != null) {
+            ArrayList<ManifestEntry> entries = new ArrayList<>(files.length());
+            for (int i = 0; i < files.length(); i++) {
+                JSONObject f = files.getJSONObject(i);
+                String filePath = f.optString("path", "");
+                long size = f.optLong("size", -1);
+                String md5 = f.optString("md5", "");
+                String url = f.optString("url", "");
+                if (filePath.isEmpty() || size < 0 || !md5.matches("(?i)^[a-f0-9]{32}$")
+                        || url.isEmpty()) {
+                    throw new IllegalStateException("Server returned an invalid game manifest entry.");
+                }
+                entries.add(new ManifestEntry(filePath, size, md5.toLowerCase(Locale.ROOT), url));
+            }
+            r.manifest = new Manifest(
+                r.manifestVersion != null ? r.manifestVersion : "",
+                json.optLong("expires_at", 0),
+                entries);
+        }
         return r;
     }
 

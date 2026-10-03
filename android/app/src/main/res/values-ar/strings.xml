@@ -358,4 +358,34 @@
     <string name="drive_import_choose_another">اختيار مجلد آخر</string>
     <string name="drive_import_retry">متابعة / إعادة المحاولة</string>
 
+
+    <string name="subscription_title">اشتراك Abodeh Play</string>
+    <string name="subscription_subtitle">سجّل الدخول بحسابك. سيتم ربط الحساب بأول هاتف يتم تفعيله عليه.</string>
+    <string name="subscription_username">اسم المستخدم</string>
+    <string name="subscription_password">كلمة المرور</string>
+    <string name="subscription_login">تسجيل الدخول</string>
+    <string name="subscription_device_notice">بعد التفعيل يبقى الحساب مربوطًا بهذا الهاتف. تغيير الهاتف يحتاج إعادة ضبط من الإدارة.</string>
+    <string name="subscription_checking">جارٍ التحقق من الاشتراك…</string>
+    <string name="subscription_signing_in">جارٍ تسجيل الدخول وربط الجهاز…</string>
+    <string name="subscription_missing_fields">أدخل اسم المستخدم وكلمة المرور.</string>
+    <string name="subscription_network_required">يلزم اتصال بالإنترنت للتحقق من الاشتراك.</string>
+    <string name="subscription_network_error">تعذر الاتصال بسيرفر الاشتراكات.</string>
+    <string name="subscription_device_mismatch">هذا الحساب مربوط بهاتف آخر. تواصل مع الإدارة لإعادة ضبط الجهاز.</string>
+    <string name="subscription_expired">انتهت مدة الاشتراك.</string>
+    <string name="subscription_blocked">الحساب موقوف.</string>
+    <string name="subscription_invalid_credentials">اسم المستخدم أو كلمة المرور غير صحيحة.</string>
+    <string name="subscription_rate_limited">محاولات كثيرة. انتظر قليلًا ثم أعد المحاولة.</string>
+    <string name="subscription_error">تعذر التحقق من الاشتراك.</string>
+
+
+    <string name="auto_download_title">تجهيز Abodeh Play</string>
+    <string name="auto_download_preparing">جارٍ تجهيز ملفات اللعبة…</string>
+    <string name="auto_download_detail">سيتم تنزيل الملفات المطلوبة تلقائيًا. يمكنك إعادة المحاولة إذا انقطع الاتصال.</string>
+    <string name="auto_download_progress">جارٍ تنزيل اللعبة… %1$d%%</string>
+    <string name="auto_download_stats">السرعة: %1$s\nالمتبقي: %2$s\n%3$s</string>
+    <string name="auto_download_complete">اكتمل تنزيل اللعبة ✓</string>
+    <string name="auto_download_launching">جارٍ تشغيل Abodeh Play…</string>
+    <string name="auto_download_failed">تعذر إكمال تنزيل اللعبة.</string>
+    <string name="auto_download_retry">متابعة التنزيل</string>
+
 </resources>

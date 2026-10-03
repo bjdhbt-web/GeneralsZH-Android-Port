@@ -130,6 +130,7 @@ public class SetupActivity extends Activity {
     private TextView statusText;
     private volatile boolean fullBundleInstallStarted;
     private volatile boolean driveImportStarted;
+    private volatile boolean autoDownloadStarted;
 
     @Override
     protected void attachBaseContext(android.content.Context newBase) {
@@ -159,10 +160,16 @@ public class SetupActivity extends Activity {
             BundledGameData.activateIfInstalled(this);
         }
 
-        // Abodeh Play Drive Edition: if the user already granted a persistent
-        // Drive folder URI and the copy was interrupted, resume automatically
-        // on the next launch instead of asking for the folder again.
-        if (resumeDriveImportIfNeeded()) {
+        // Abodeh Play Auto Download Edition. After subscription login, the
+        // user never has to browse Drive or select folders. Missing game data
+        // is fetched from the authenticated manifest endpoint and resumed
+        // automatically from .part files.
+        if (HttpGameInstaller.isInstalled(this)) {
+            HttpGameInstaller.activateIfInstalled(this);
+        } else if (SubscriptionManager.hasValidOfflineLease(this)
+                && BuildConfig.AUTO_GAME_MANIFEST_URL != null
+                && !BuildConfig.AUTO_GAME_MANIFEST_URL.isEmpty()) {
+            showAutoDownloadInstaller();
             return;
         }
 
@@ -557,8 +564,6 @@ public class SetupActivity extends Activity {
         statusText = UiKit.body(folder, null);
         statusText.setTextIsSelectable(true);
 
-        UiKit.button(folder, UiKit.BTN_PRIMARY, R.drawable.ic_gzh_download,
-            getString(R.string.setup_button_import_drive), this::onImportFromDrive);
         UiKit.button(folder, UiKit.BTN_TONAL, R.drawable.ic_gzh_folder,
             getString(R.string.setup_button_select_game_folder), this::onSelectGameFolder);
         UiKit.button(folder, UiKit.BTN_TONAL, R.drawable.ic_gzh_folder,
@@ -3017,6 +3022,122 @@ public class SetupActivity extends Activity {
 
     private static final int REQUEST_LEGACY_STORAGE_PERMISSION = 1003;
 
+
+    private void showAutoDownloadInstaller() {
+        ScrollView scroll = new ScrollView(this);
+        LinearLayout root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        int pad = dp(24);
+        root.setPadding(pad, pad, pad, pad);
+        scroll.addView(root, new ScrollView.LayoutParams(
+            ScrollView.LayoutParams.MATCH_PARENT, ScrollView.LayoutParams.WRAP_CONTENT));
+        setContentView(scroll);
+        InsetUtil.applySafeInsets(scroll);
+
+        TextView title = new TextView(this);
+        title.setText(R.string.auto_download_title);
+        title.setTextSize(26);
+        title.setTypeface(Typeface.DEFAULT_BOLD);
+        root.addView(title);
+
+        TextView status = new TextView(this);
+        status.setText(R.string.auto_download_preparing);
+        status.setTextSize(17);
+        LinearLayout.LayoutParams statusLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        statusLp.topMargin = dp(18);
+        root.addView(status, statusLp);
+
+        android.widget.ProgressBar progress = new android.widget.ProgressBar(
+            this, null, android.R.attr.progressBarStyleHorizontal);
+        progress.setMax(1000);
+        LinearLayout.LayoutParams progressLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, dp(18));
+        progressLp.topMargin = dp(18);
+        root.addView(progress, progressLp);
+
+        TextView detail = new TextView(this);
+        detail.setText(R.string.auto_download_detail);
+        detail.setTextSize(14);
+        LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        detailLp.topMargin = dp(12);
+        root.addView(detail, detailLp);
+
+        Button retry = new Button(this);
+        retry.setText(R.string.auto_download_retry);
+        retry.setVisibility(View.GONE);
+        LinearLayout.LayoutParams retryLp = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        retryLp.topMargin = dp(20);
+        root.addView(retry, retryLp);
+
+        Runnable startDownload = () -> {
+            if (autoDownloadStarted) return;
+            autoDownloadStarted = true;
+            retry.setVisibility(View.GONE);
+            status.setText(R.string.auto_download_preparing);
+            detail.setText(R.string.auto_download_detail);
+            progress.setProgress(0);
+
+            new Thread(() -> {
+                final long[] lastUi = { -4L * 1024L * 1024L };
+                try {
+                    HttpGameInstaller.install(
+                        this,
+                        BuildConfig.AUTO_GAME_MANIFEST_URL,
+                        SubscriptionManager.token(this),
+                        (done, total, path, bytesPerSecond) -> {
+                            if (done - lastUi[0] < 4L * 1024L * 1024L && done < total) return;
+                            lastUi[0] = done;
+                            int value = total > 0 ? (int)Math.min(1000L, done * 1000L / total) : 0;
+                            int percent = value / 10;
+                            long remaining = Math.max(0, total - done);
+                            runOnUiThread(() -> {
+                                progress.setProgress(value);
+                                status.setText(getString(R.string.auto_download_progress, percent));
+                                detail.setText(getString(
+                                    R.string.auto_download_stats,
+                                    formatBytes(bytesPerSecond) + "/s",
+                                    formatBytes(remaining),
+                                    path));
+                            });
+                        });
+
+                    runOnUiThread(() -> {
+                        progress.setProgress(1000);
+                        status.setText(R.string.auto_download_complete);
+                        detail.setText(R.string.auto_download_launching);
+                        status.postDelayed(() -> {
+                            startActivity(new Intent(this, GeneralsZHActivity.class));
+                            finish();
+                        }, 500);
+                    });
+                } catch (Throwable t) {
+                    Log.e("AbodehAutoDownload", "Automatic game download failed", t);
+                    runOnUiThread(() -> {
+                        autoDownloadStarted = false;
+                        status.setText(R.string.auto_download_failed);
+                        detail.setText(String.valueOf(t.getMessage()));
+                        retry.setVisibility(View.VISIBLE);
+                    });
+                }
+            }, "AbodehAutoDownloader").start();
+        };
+
+        retry.setOnClickListener(v -> startDownload.run());
+        startDownload.run();
+    }
+
+    private static String formatBytes(long bytes) {
+        if (bytes < 1024) return bytes + " B";
+        double value = bytes / 1024.0;
+        if (value < 1024) return String.format(java.util.Locale.ROOT, "%.1f KB", value);
+        value /= 1024.0;
+        if (value < 1024) return String.format(java.util.Locale.ROOT, "%.1f MB", value);
+        value /= 1024.0;
+        return String.format(java.util.Locale.ROOT, "%.2f GB", value);
+    }
 
     private void onImportFromDrive() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);

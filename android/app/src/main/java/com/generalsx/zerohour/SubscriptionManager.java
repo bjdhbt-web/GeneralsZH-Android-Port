@@ -5,12 +5,15 @@ import android.content.SharedPreferences;
 
 final class SubscriptionManager {
     static final String PREFS = "abodeh_play_subscription";
-    static final String API_BASE = "https://syscomx.net/wp-json/abodeh-play/v1";
+    static final String API_BASE = "https://abodeh-play-api.bjdhbt.workers.dev/v1";
+
     private static final String TOKEN = "token";
     private static final String USERNAME = "username";
     private static final String SUBSCRIPTION_EXPIRES = "subscription_expires";
     private static final String OFFLINE_UNTIL = "offline_until";
     private static final String STATUS = "status";
+    private static final String MANIFEST_VERSION = "manifest_version";
+    private static final String MANIFEST_FILE_COUNT = "manifest_file_count";
 
     private SubscriptionManager() {}
 
@@ -22,6 +25,13 @@ final class SubscriptionManager {
             .putLong(SUBSCRIPTION_EXPIRES, subscriptionExpires)
             .putLong(OFFLINE_UNTIL, offlineUntil)
             .putString(STATUS, status)
+            .apply();
+    }
+
+    static void saveManifestSummary(Context ctx, String version, int fileCount) {
+        ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
+            .putString(MANIFEST_VERSION, version != null ? version : "")
+            .putInt(MANIFEST_FILE_COUNT, Math.max(fileCount, 0))
             .apply();
     }
 

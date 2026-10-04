@@ -146,6 +146,7 @@ public class SetupActivity extends Activity {
         // rotating Setup at all.
         super.onCreate(savedInstanceState);
         setTitle(R.string.setup_window_title);
+        ApkUpdateManager.handleInstallIntent(this, getIntent());
 
         // Abodeh Play Full Edition: a privately built APK may carry the user's
         // own Zero Hour installation in assets/fullgame. First launch installs
@@ -359,11 +360,21 @@ public class SetupActivity extends Activity {
         loadDxvkConfigIntoEditor();
         refreshDiagnosticsSwitches();
         refreshUpdatesStatus();
+        refreshApkUpdateStatus();
+        ApkUpdateManager.resumePendingInstall(this);
         // Once per process, not on every return to this screen.
         if (!sAutoUpdateCheckedThisProcess && UpdateManager.isAutoCheckEnabled(this)) {
             sAutoUpdateCheckedThisProcess = true;
             runUpdateCheck(false);
+            runApkUpdateCheck(false);
         }
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        ApkUpdateManager.handleInstallIntent(this, intent);
     }
 
     // GeneralsX @feature Android port launcher-ui-2026 08/09/2026 The launcher
@@ -592,9 +603,13 @@ public class SetupActivity extends Activity {
     // APK: a newer engine, when one is published. The network settings from the same signed
     // manifest are applied by the same check but shown on the multiplayer screen. See UpdateManager.
     private TextView updatesStatusView;
+    private TextView apkUpdateStatusView;
+    private MaterialButton apkUpdateButton;
     private View updatesOpenOnlineButton;
     private boolean updateCheckRunning;
+    private boolean apkUpdateCheckRunning;
     private static boolean sAutoUpdateCheckedThisProcess;
+    private static boolean sApkUpdatePromptedThisProcess;
 
     private void buildUpdatesSection(LinearLayout root) {
         LinearLayout content = UiKit.card(root);
@@ -602,6 +617,12 @@ public class SetupActivity extends Activity {
             getString(R.string.setup_card_updates), false);
         UiKit.supporting(content, getString(R.string.setup_updates_help));
         updatesStatusView = UiKit.body(content, null);
+        apkUpdateStatusView = UiKit.supporting(content,
+            getString(R.string.apk_update_current,
+                ApkUpdateManager.currentVersionName(this),
+                ApkUpdateManager.currentVersionCode(this)));
+        apkUpdateButton = UiKit.button(content, UiKit.BTN_TONAL, R.drawable.ic_gzh_download,
+            getString(R.string.apk_update_check_button), () -> runApkUpdateCheck(true));
         UiKit.button(content, UiKit.BTN_TONAL, R.drawable.ic_gzh_download,
             getString(R.string.setup_button_check_updates), () -> runUpdateCheck(true));
         // The community data patch is updated on the multiplayer screen; this card only says a
@@ -638,6 +659,88 @@ public class SetupActivity extends Activity {
         updatesStatusView.setText(status);
         if (updatesOpenOnlineButton != null) {
             updatesOpenOnlineButton.setVisibility(newerData ? View.VISIBLE : View.GONE);
+        }
+        refreshApkUpdateStatus();
+    }
+
+    private void refreshApkUpdateStatus() {
+        if (apkUpdateStatusView == null || apkUpdateButton == null) {
+            return;
+        }
+        ApkUpdateManager.Result cached = ApkUpdateManager.cachedOffer(this);
+        if (cached.updateAvailable) {
+            apkUpdateStatusView.setText(getString(
+                R.string.apk_update_available_status,
+                cached.versionName,
+                cached.versionCode));
+            if (ApkUpdateManager.isDownloadComplete(this)) {
+                apkUpdateButton.setText(R.string.apk_update_install_button);
+                apkUpdateButton.setOnClickListener(v -> ApkUpdateManager.installDownloaded(this));
+            } else {
+                apkUpdateButton.setText(R.string.apk_update_now);
+                apkUpdateButton.setOnClickListener(v -> startApkUpdateDownload(cached));
+            }
+        } else {
+            apkUpdateStatusView.setText(getString(
+                R.string.apk_update_current,
+                ApkUpdateManager.currentVersionName(this),
+                ApkUpdateManager.currentVersionCode(this)));
+            apkUpdateButton.setText(R.string.apk_update_check_button);
+            apkUpdateButton.setOnClickListener(v -> runApkUpdateCheck(true));
+        }
+    }
+
+    private void runApkUpdateCheck(boolean userAsked) {
+        if (apkUpdateCheckRunning) return;
+        apkUpdateCheckRunning = true;
+        new Thread(() -> {
+            ApkUpdateManager.Result result = ApkUpdateManager.check(getApplicationContext());
+            runOnUiThread(() -> {
+                apkUpdateCheckRunning = false;
+                refreshApkUpdateStatus();
+
+                if (!result.ok) {
+                    if (userAsked && !result.offline) {
+                        toast(getString(R.string.apk_update_check_failed,
+                            result.error != null ? result.error : "unknown"));
+                    }
+                    return;
+                }
+
+                if (!result.updateAvailable) {
+                    if (userAsked) toast(getString(R.string.apk_update_no_update));
+                    return;
+                }
+
+                if (!sApkUpdatePromptedThisProcess || userAsked) {
+                    sApkUpdatePromptedThisProcess = true;
+                    showApkUpdateDialog(result);
+                }
+            });
+        }, "abodeh-apk-update-check").start();
+    }
+
+    private void showApkUpdateDialog(ApkUpdateManager.Result result) {
+        new android.app.AlertDialog.Builder(this)
+            .setTitle(R.string.apk_update_available_title)
+            .setMessage(getString(R.string.apk_update_available_text, result.versionName))
+            .setPositiveButton(R.string.apk_update_now,
+                (dialog, which) -> startApkUpdateDownload(result))
+            .setNegativeButton(R.string.apk_update_later, null)
+            .show();
+    }
+
+    private void startApkUpdateDownload(ApkUpdateManager.Result result) {
+        requestDownloadNotificationPermissionIfNeeded();
+        long id = ApkUpdateManager.startDownload(this, result);
+        if (id >= 0) {
+            toast(id == 0
+                ? getString(R.string.apk_update_ready_text)
+                : getString(R.string.apk_update_downloading));
+            if (id == 0) ApkUpdateManager.installDownloaded(this);
+            refreshApkUpdateStatus();
+        } else {
+            toast(getString(R.string.apk_update_check_failed, "download"));
         }
     }
 

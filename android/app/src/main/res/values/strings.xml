@@ -409,4 +409,23 @@
     <string name="server_game_notification_complete">Game files download complete.</string>
     <string name="server_game_notification_failed">Game download stopped. Open Abodeh Play to continue.</string>
 
+
+    <!-- Abodeh Play APK self-updater -->
+    <string name="apk_update_available_title">A new Abodeh Play update is available</string>
+    <string name="apk_update_available_text">Version %1$s is ready. Download it now?</string>
+    <string name="apk_update_now">Download update</string>
+    <string name="apk_update_later">Later</string>
+    <string name="apk_update_downloading">Downloading app update…</string>
+    <string name="apk_update_download_title">Abodeh Play update</string>
+    <string name="apk_update_ready_title">Abodeh Play update is ready</string>
+    <string name="apk_update_ready_text">Tap here to install the update.</string>
+    <string name="apk_update_channel">App updates</string>
+    <string name="apk_update_channel_desc">Download and install notifications for Abodeh Play updates.</string>
+    <string name="apk_update_install_button">Install app update</string>
+    <string name="apk_update_check_button">Check app update</string>
+    <string name="apk_update_current">App version: %1$s (%2$d)</string>
+    <string name="apk_update_available_status">New app version available: %1$s (%2$d)</string>
+    <string name="apk_update_no_update">You already have the latest app version.</string>
+    <string name="apk_update_check_failed">Could not check app update: %1$s</string>
+
 </resources>

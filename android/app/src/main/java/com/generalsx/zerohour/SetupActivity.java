@@ -130,7 +130,6 @@ public class SetupActivity extends Activity {
     private TextView statusText;
     private volatile boolean fullBundleInstallStarted;
     private volatile boolean driveImportStarted;
-    private volatile boolean serverInstallStarted;
 
     @Override
     protected void attachBaseContext(android.content.Context newBase) {
@@ -3062,7 +3061,7 @@ public class SetupActivity extends Activity {
         root.addView(progress, progressLp);
 
         TextView detail = new TextView(this);
-        detail.setText(R.string.server_game_install_detail);
+        detail.setText(R.string.server_game_install_background_detail);
         detail.setTextSize(14);
         detail.setTextIsSelectable(true);
         LinearLayout.LayoutParams detailLp = new LinearLayout.LayoutParams(
@@ -3078,59 +3077,83 @@ public class SetupActivity extends Activity {
         retryLp.topMargin = dp(20);
         root.addView(retry, retryLp);
 
-        Runnable startInstall = () -> {
-            if (serverInstallStarted) return;
-            serverInstallStarted = true;
+        Runnable startDownload = () -> {
+            requestDownloadNotificationPermissionIfNeeded();
             retry.setVisibility(View.GONE);
             status.setText(R.string.server_game_install_preparing);
-            detail.setText(R.string.server_game_install_detail);
-            progress.setProgress(0);
+            detail.setText(R.string.server_game_install_background_detail);
+            ServerGameDownloadService.startDownload(this);
+        };
+        retry.setOnClickListener(v -> startDownload.run());
 
-            new Thread(() -> {
-                final long[] lastUiBytes = { -4L * 1024L * 1024L };
-                try {
-                    ServerGameInstaller.install(this,
-                        (doneBytes, totalBytes, fileIndex, fileCount, relativePath) -> {
-                            if (doneBytes - lastUiBytes[0] < 4L * 1024L * 1024L
-                                    && doneBytes < totalBytes) {
-                                return;
-                            }
-                            lastUiBytes[0] = doneBytes;
-                            int value = totalBytes > 0
-                                ? (int) Math.min(1000L, (doneBytes * 1000L) / totalBytes)
-                                : 0;
-                            int percent = value / 10;
-                            runOnUiThread(() -> {
-                                progress.setProgress(value);
-                                status.setText(getString(
-                                    R.string.server_game_install_downloading, percent));
-                                detail.setText(getString(
-                                    R.string.server_game_install_file,
-                                    fileIndex, fileCount, relativePath));
-                            });
-                        });
+        final Runnable[] refresh = new Runnable[1];
+        refresh[0] = () -> {
+            if (isFinishing() || isDestroyed() || !scroll.isAttachedToWindow()) {
+                return;
+            }
 
-                    runOnUiThread(() -> {
-                        serverInstallStarted = false;
-                        progress.setProgress(1000);
-                        status.setText(R.string.server_game_install_complete);
-                        detail.setText(R.string.server_game_install_ready);
-                        status.postDelayed(this::recreate, 800);
-                    });
-                } catch (Throwable t) {
-                    Log.e("AbodehServerInstall", "Server game install failed", t);
-                    runOnUiThread(() -> {
-                        serverInstallStarted = false;
-                        status.setText(R.string.server_game_install_failed);
-                        detail.setText(String.valueOf(t.getMessage()));
-                        retry.setVisibility(View.VISIBLE);
-                    });
+            ServerGameDownloadService.State state =
+                ServerGameDownloadService.readState(this);
+            int value = state.progress1000();
+            progress.setProgress(value);
+
+            if (ServerGameDownloadService.STATE_RUNNING.equals(state.state)) {
+                int percent = value / 10;
+                status.setText(getString(
+                    R.string.server_game_install_downloading, percent));
+                if (state.fileCount > 0) {
+                    detail.setText(getString(
+                        R.string.server_game_install_file,
+                        state.fileIndex, state.fileCount, state.path));
+                } else {
+                    detail.setText(R.string.server_game_install_background_detail);
                 }
-            }, "AbodehServerGameInstaller").start();
+                retry.setVisibility(View.GONE);
+                status.postDelayed(refresh[0], 500);
+                return;
+            }
+
+            if (ServerGameDownloadService.STATE_SUCCESS.equals(state.state)) {
+                progress.setProgress(1000);
+                status.setText(R.string.server_game_install_complete);
+                detail.setText(R.string.server_game_install_ready);
+                retry.setVisibility(View.GONE);
+                status.postDelayed(this::recreate, 1000);
+                return;
+            }
+
+            if (ServerGameDownloadService.STATE_ERROR.equals(state.state)) {
+                status.setText(R.string.server_game_install_failed);
+                detail.setText(state.error != null && !state.error.isEmpty()
+                    ? state.error
+                    : getString(R.string.server_game_install_failed));
+                retry.setVisibility(View.VISIBLE);
+                return;
+            }
+
+            status.setText(R.string.server_game_install_preparing);
+            detail.setText(R.string.server_game_install_background_detail);
+            status.postDelayed(refresh[0], 500);
         };
 
-        retry.setOnClickListener(v -> startInstall.run());
-        startInstall.run();
+        ServerGameDownloadService.State initial =
+            ServerGameDownloadService.readState(this);
+        if (!ServerGameDownloadService.STATE_RUNNING.equals(initial.state)) {
+            startDownload.run();
+        }
+        status.post(refresh[0]);
+    }
+
+    private void requestDownloadNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= 33
+                && ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                this,
+                new String[] { Manifest.permission.POST_NOTIFICATIONS },
+                1020);
+        }
     }
 
 

@@ -51,6 +51,7 @@ final class ServerGameInstaller {
             total = Math.addExact(total, entry.size);
         }
 
+        final long totalBytes = total;
         long done = 0;
         final int count = manifest.files.size();
         for (int i = 0; i < count; i++) {
@@ -64,7 +65,7 @@ final class ServerGameInstaller {
             if (dest.isFile() && dest.length() == entry.size
                     && entry.md5.equalsIgnoreCase(md5(dest))) {
                 done += entry.size;
-                emit(progress, done, total, i + 1, count, entry.path);
+                emit(progress, done, totalBytes, i + 1, count, entry.path);
                 continue;
             }
 
@@ -81,7 +82,7 @@ final class ServerGameInstaller {
 
             long already = part.isFile() ? part.length() : 0;
             if (already > 0) {
-                emit(progress, done + already, total, i + 1, count, entry.path);
+                emit(progress, done + already, totalBytes, i + 1, count, entry.path);
             }
 
             SubscriptionApi.ManifestEntry active = entry;
@@ -92,7 +93,7 @@ final class ServerGameInstaller {
                     final long progressBase = done + already;
                     final int progressIndex = i + 1;
                     code = downloadRange(active.url, part, already, entry.size, (copied) ->
-                        emit(progress, progressBase + copied, total, progressIndex, count, entry.path));
+                        emit(progress, progressBase + copied, totalBytes, progressIndex, count, entry.path));
                 } catch (IOException e) {
                     throw new IOException("Download failed for " + entry.path + ": " + e.getMessage(), e);
                 }
@@ -135,7 +136,7 @@ final class ServerGameInstaller {
             }
 
             done += entry.size;
-            emit(progress, done, total, i + 1, count, entry.path);
+            emit(progress, done, totalBytes, i + 1, count, entry.path);
         }
 
         if (!DriveFolderInstaller.isInstalled(context)) {

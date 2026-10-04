@@ -401,4 +401,14 @@
     <string name="apk_update_no_update">أنت على أحدث إصدار من التطبيق.</string>
     <string name="apk_update_check_failed">تعذر فحص تحديث التطبيق: %1$s</string>
 
+
+    <string name="app_update_available_title">يتوفر تحديث لـ Abodeh Play</string>
+    <string name="app_update_available_message">الإصدار %1$s متوفر الآن. اضغط «تثبيت» لتنزيل التحديث، وبعدها سيعرض أندرويد شاشة التثبيت الرسمية.</string>
+    <string name="app_update_install">تثبيت</string>
+    <string name="app_update_later">لاحقًا</string>
+    <string name="app_update_downloading_title">تنزيل تحديث Abodeh Play</string>
+    <string name="app_update_downloading">جارٍ تنزيل APK…</string>
+    <string name="app_update_download_failed">فشل تنزيل تحديث التطبيق: %1$s</string>
+    <string name="app_update_install_failed">تعذر فتح شاشة تثبيت التحديث.</string>
+
 </resources>

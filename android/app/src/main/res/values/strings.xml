@@ -428,4 +428,14 @@
     <string name="apk_update_no_update">You already have the latest app version.</string>
     <string name="apk_update_check_failed">Could not check app update: %1$s</string>
 
+
+    <string name="app_update_available_title">Abodeh Play update available</string>
+    <string name="app_update_available_message">Version %1$s is available. Tap Install to download it, then Android will show the normal system install screen.</string>
+    <string name="app_update_install">Install</string>
+    <string name="app_update_later">Later</string>
+    <string name="app_update_downloading_title">Downloading Abodeh Play update</string>
+    <string name="app_update_downloading">Downloading APK…</string>
+    <string name="app_update_download_failed">App update download failed: %1$s</string>
+    <string name="app_update_install_failed">Could not open the Android installer.</string>
+
 </resources>

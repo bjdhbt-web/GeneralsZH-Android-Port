@@ -29,6 +29,8 @@ jobs:
     timeout-minutes: 120
     env:
       VCPKG_COMMIT: '42e4e33e1505c9f47b58c21e0f557c1571b751ee'
+      VULKAN_VERSION: '1.4.341.1'
+      VULKAN_SHA256: '632cbe96c8ed6ed00c6ce25e3a7738c466134f76586e1c51f1419410d7f9042e'
 
     steps:
       - name: Checkout Code
@@ -64,35 +66,64 @@ jobs:
           "$HOME/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
           echo "VCPKG_ROOT=$HOME/vcpkg" >> "$GITHUB_ENV"
 
-      - name: Install Vulkan SDK with MoltenVK iOS framework
+      - name: Install pinned Vulkan SDK with MoltenVK iOS framework
         run: |
           set -euo pipefail
-          brew install --cask vulkan-sdk || true
 
-          VULKAN_SDK=""
-          for candidate in \
-            "$HOME/VulkanSDK"/*/macOS \
-            /opt/homebrew/Caskroom/vulkan-sdk/*/VulkanSDK/macOS \
-            /usr/local/Caskroom/vulkan-sdk/*/VulkanSDK/macOS; do
-            if [ -d "$candidate" ] && [ -d "$candidate/lib/MoltenVK.xcframework" ]; then
-              VULKAN_SDK="$candidate"
-            fi
-          done
+          ZIP="/tmp/vulkansdk-macos-${VULKAN_VERSION}.zip"
+          URL="https://sdk.lunarg.com/sdk/download/${VULKAN_VERSION}/mac/vulkansdk-macos-${VULKAN_VERSION}.zip"
+          ROOT="$HOME/VulkanSDK/${VULKAN_VERSION}"
+          EXTRACT="/tmp/vulkan-ios-sdk"
 
-          if [ -z "$VULKAN_SDK" ]; then
-            echo "::error::Vulkan SDK with MoltenVK.xcframework was not found"
-            find "$HOME/VulkanSDK" /opt/homebrew/Caskroom/vulkan-sdk /usr/local/Caskroom/vulkan-sdk \
-              -maxdepth 5 -name 'MoltenVK.xcframework' -print 2>/dev/null || true
+          rm -rf "$EXTRACT" "$ZIP"
+          mkdir -p "$EXTRACT"
+
+          echo "Downloading pinned Vulkan SDK ${VULKAN_VERSION}..."
+          curl -fL --retry 3 --retry-delay 5 --connect-timeout 30 --max-time 240 \
+            -o "$ZIP" "$URL"
+
+          ACTUAL_SHA256="$(shasum -a 256 "$ZIP" | awk '{print $1}')"
+          if [ "$ACTUAL_SHA256" != "$VULKAN_SHA256" ]; then
+            echo "::error::Vulkan SDK SHA256 mismatch: $ACTUAL_SHA256"
             exit 1
           fi
 
-          IOS_MOLTENVK="$VULKAN_SDK/lib/MoltenVK.xcframework/ios-arm64/MoltenVK.framework/MoltenVK"
-          if [ ! -f "$IOS_MOLTENVK" ]; then
-            IOS_MOLTENVK="$VULKAN_SDK/lib/MoltenVK.xcframework/ios-arm64/libMoltenVK.a"
+          unzip -q "$ZIP" -d "$EXTRACT"
+
+          INSTALLER="$(find "$EXTRACT" -path '*/Contents/MacOS/vulkansdk-macOS-*' -type f | head -1)"
+          if [ -z "$INSTALLER" ]; then
+            INSTALLER="$(find "$EXTRACT" -name 'vulkansdk-macOS-*' -type f | head -1)"
           fi
-          if [ ! -f "$IOS_MOLTENVK" ]; then
-            echo "::error::MoltenVK iOS arm64 slice not found under $VULKAN_SDK"
-            find "$VULKAN_SDK/lib/MoltenVK.xcframework" -maxdepth 4 -type f -print | head -80
+          if [ -z "$INSTALLER" ] || [ ! -f "$INSTALLER" ]; then
+            echo "::error::Vulkan SDK installer executable was not found"
+            find "$EXTRACT" -maxdepth 5 -type f -print | head -80
+            exit 1
+          fi
+
+          chmod +x "$INSTALLER"
+          "$INSTALLER" \
+            --root "$ROOT" \
+            --accept-licenses \
+            --default-answer \
+            --confirm-command install
+
+          if [ -d "$ROOT/macOS" ]; then
+            VULKAN_SDK="$ROOT/macOS"
+          else
+            VULKAN_SDK="$ROOT"
+          fi
+
+          XCFRAMEWORK="$VULKAN_SDK/lib/MoltenVK.xcframework"
+          if [ ! -d "$XCFRAMEWORK" ]; then
+            echo "::error::MoltenVK.xcframework was not installed under $VULKAN_SDK/lib"
+            find "$ROOT" -maxdepth 6 -name 'MoltenVK.xcframework' -print || true
+            exit 1
+          fi
+
+          IOS_MOLTENVK="$(find "$XCFRAMEWORK" -path '*/ios-arm64/*' -type f \( -name 'MoltenVK' -o -name 'libMoltenVK.a' \) | head -1)"
+          if [ -z "$IOS_MOLTENVK" ] || [ ! -f "$IOS_MOLTENVK" ]; then
+            echo "::error::MoltenVK iOS arm64 slice not found"
+            find "$XCFRAMEWORK" -maxdepth 5 -type f -print | head -120
             exit 1
           fi
 
@@ -157,16 +188,17 @@ jobs:
             cp -R "$MOLTEN_FRAMEWORK" "$FRAMEWORKS/MoltenVK.framework"
           else
             echo "::error::Dynamic MoltenVK.framework iOS slice required by the current DXVK loader patch"
+            find "$VULKAN_SDK/lib/MoltenVK.xcframework" -maxdepth 4 -print | head -100
             exit 1
           fi
 
-          # Let DXVK resolve its sibling dylibs/framework from the app bundle.
           install_name_tool -add_rpath '@executable_path/Frameworks' "$APP/GeneralsXZH" 2>/dev/null || true
           install_name_tool -add_rpath '@loader_path' "$FRAMEWORKS/libdxvk_d3d8.0.dylib" 2>/dev/null || true
           install_name_tool -add_rpath '@loader_path' "$FRAMEWORKS/libdxvk_d3d9.0.dylib" 2>/dev/null || true
 
-          # Ad-hoc signatures make the artifact internally coherent. A sideloading
-          # tool / Apple Developer profile must re-sign it for a physical iPhone.
+          # CI produces an ad-hoc-signed IPA so we can verify packaging without
+          # putting Apple certificates in the repository. A physical stock iPhone
+          # still requires normal Apple development/distribution re-signing.
           codesign --force --sign - "$FRAMEWORKS/MoltenVK.framework/MoltenVK"
           codesign --force --sign - "$FRAMEWORKS/libdxvk_d3d9.0.dylib"
           codesign --force --sign - "$FRAMEWORKS/libdxvk_d3d8.0.dylib"

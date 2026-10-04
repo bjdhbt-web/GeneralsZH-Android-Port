@@ -399,4 +399,14 @@
     <string name="server_game_install_failed">Could not download or install the game files.</string>
     <string name="server_game_install_retry">Continue / Retry</string>
 
+
+    <string name="server_game_install_background_detail">Game files continue downloading in the background even if you close the app UI. Do not Force stop the app while downloading.</string>
+    <string name="server_game_notification_channel">Game file downloads</string>
+    <string name="server_game_notification_channel_desc">Keeps Generals and Zero Hour downloading in the background.</string>
+    <string name="server_game_notification_title">Abodeh Play — Game download</string>
+    <string name="server_game_notification_preparing">Preparing download…</string>
+    <string name="server_game_notification_progress">Downloading %1$d%% · file %2$d of %3$d</string>
+    <string name="server_game_notification_complete">Game files download complete.</string>
+    <string name="server_game_notification_failed">Game download stopped. Open Abodeh Play to continue.</string>
+
 </resources>

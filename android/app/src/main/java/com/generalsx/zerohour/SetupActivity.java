@@ -366,6 +366,11 @@ public class SetupActivity extends Activity {
         if (!sAutoUpdateCheckedThisProcess && UpdateManager.isAutoCheckEnabled(this)) {
             sAutoUpdateCheckedThisProcess = true;
             runUpdateCheck(false);
+        }
+        // App APK updates are independent from the engine auto-update toggle:
+        // check once per app process so every user is offered a newer launcher.
+        if (!sApkUpdateCheckedThisProcess) {
+            sApkUpdateCheckedThisProcess = true;
             runApkUpdateCheck(false);
         }
     }
@@ -609,6 +614,7 @@ public class SetupActivity extends Activity {
     private boolean updateCheckRunning;
     private boolean apkUpdateCheckRunning;
     private static boolean sAutoUpdateCheckedThisProcess;
+    private static boolean sApkUpdateCheckedThisProcess;
     private static boolean sApkUpdatePromptedThisProcess;
 
     private void buildUpdatesSection(LinearLayout root) {

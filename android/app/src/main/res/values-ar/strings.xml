@@ -372,4 +372,14 @@
     <string name="server_game_install_failed">تعذر تنزيل أو تثبيت ملفات اللعبة.</string>
     <string name="server_game_install_retry">متابعة / إعادة المحاولة</string>
 
+
+    <string name="server_game_install_background_detail">سيستمر تنزيل ملفات اللعبة في الخلفية حتى لو أغلقت واجهة التطبيق. لا تستخدم «إيقاف إجباري» للتطبيق أثناء التنزيل.</string>
+    <string name="server_game_notification_channel">تنزيل ملفات اللعبة</string>
+    <string name="server_game_notification_channel_desc">يبقي تنزيل Generals وZero Hour يعمل في الخلفية.</string>
+    <string name="server_game_notification_title">Abodeh Play — تنزيل اللعبة</string>
+    <string name="server_game_notification_preparing">جارٍ تجهيز التنزيل…</string>
+    <string name="server_game_notification_progress">جارٍ التنزيل %1$d%% · الملف %2$d من %3$d</string>
+    <string name="server_game_notification_complete">اكتمل تنزيل ملفات اللعبة.</string>
+    <string name="server_game_notification_failed">توقف تنزيل ملفات اللعبة. افتح Abodeh Play للمتابعة.</string>
+
 </resources>

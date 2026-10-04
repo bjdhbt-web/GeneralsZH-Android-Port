@@ -1,0 +1,198 @@
+name: Build iOS
+
+permissions:
+  contents: read
+  pull-requests: read
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'GeneralsMD/**'
+      - 'Core/**'
+      - 'Dependencies/**'
+      - 'cmake/**'
+      - 'ios/**'
+      - 'Patches/**'
+      - 'references/fbraz3-dxvk'
+      - 'CMakeLists.txt'
+      - 'CMakePresets.json'
+      - 'vcpkg.json'
+      - '.github/workflows/build-ios.yml'
+  workflow_dispatch:
+
+jobs:
+  ios-device:
+    name: iphoneos-arm64
+    runs-on: macos-latest
+    timeout-minutes: 120
+    env:
+      VCPKG_COMMIT: '42e4e33e1505c9f47b58c21e0f557c1571b751ee'
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Checkout DXVK fork and its submodules
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 references/fbraz3-dxvk
+          git -C references/fbraz3-dxvk submodule update --init --depth 1
+
+      - name: Install build tools
+        run: |
+          set -euo pipefail
+          brew install cmake ninja meson pkg-config glslang || true
+          cmake --version | head -1
+          ninja --version
+          meson --version
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-path
+
+      - name: Setup vcpkg
+        run: |
+          set -euo pipefail
+          if [ ! -d "$HOME/vcpkg/.git" ]; then
+            git clone https://github.com/microsoft/vcpkg.git "$HOME/vcpkg"
+          fi
+          git -C "$HOME/vcpkg" fetch origin "$VCPKG_COMMIT"
+          git -C "$HOME/vcpkg" checkout "$VCPKG_COMMIT"
+          "$HOME/vcpkg/bootstrap-vcpkg.sh" -disableMetrics
+          echo "VCPKG_ROOT=$HOME/vcpkg" >> "$GITHUB_ENV"
+
+      - name: Install Vulkan SDK with MoltenVK iOS framework
+        run: |
+          set -euo pipefail
+          brew install --cask vulkan-sdk || true
+
+          VULKAN_SDK=""
+          for candidate in \
+            "$HOME/VulkanSDK"/*/macOS \
+            /opt/homebrew/Caskroom/vulkan-sdk/*/VulkanSDK/macOS \
+            /usr/local/Caskroom/vulkan-sdk/*/VulkanSDK/macOS; do
+            if [ -d "$candidate" ] && [ -d "$candidate/lib/MoltenVK.xcframework" ]; then
+              VULKAN_SDK="$candidate"
+            fi
+          done
+
+          if [ -z "$VULKAN_SDK" ]; then
+            echo "::error::Vulkan SDK with MoltenVK.xcframework was not found"
+            find "$HOME/VulkanSDK" /opt/homebrew/Caskroom/vulkan-sdk /usr/local/Caskroom/vulkan-sdk \
+              -maxdepth 5 -name 'MoltenVK.xcframework' -print 2>/dev/null || true
+            exit 1
+          fi
+
+          IOS_MOLTENVK="$VULKAN_SDK/lib/MoltenVK.xcframework/ios-arm64/MoltenVK.framework/MoltenVK"
+          if [ ! -f "$IOS_MOLTENVK" ]; then
+            IOS_MOLTENVK="$VULKAN_SDK/lib/MoltenVK.xcframework/ios-arm64/libMoltenVK.a"
+          fi
+          if [ ! -f "$IOS_MOLTENVK" ]; then
+            echo "::error::MoltenVK iOS arm64 slice not found under $VULKAN_SDK"
+            find "$VULKAN_SDK/lib/MoltenVK.xcframework" -maxdepth 4 -type f -print | head -80
+            exit 1
+          fi
+
+          echo "VULKAN_SDK=$VULKAN_SDK" >> "$GITHUB_ENV"
+          echo "IOS_MOLTENVK=$IOS_MOLTENVK" >> "$GITHUB_ENV"
+          echo "Using VULKAN_SDK=$VULKAN_SDK"
+          file "$IOS_MOLTENVK"
+
+      - name: Configure CMake for iPhoneOS
+        run: |
+          set -o pipefail
+          mkdir -p logs
+          export VCPKG_ROOT="$HOME/vcpkg"
+          cmake --preset ios-vulkan 2>&1 | tee logs/configure_ios.log
+
+      - name: Build Zero Hour for iPhoneOS
+        run: |
+          set -o pipefail
+          mkdir -p logs
+          NPROC="$(sysctl -n hw.ncpu)"
+          cmake --build build/ios-vulkan --target z_generals -j "$NPROC" 2>&1 | tee logs/build_ios.log
+
+      - name: Locate iOS binary and runtime libraries
+        id: locate
+        run: |
+          set -euo pipefail
+          BIN="$(find build/ios-vulkan -type f -name GeneralsXZH -perm -111 | head -1)"
+          if [ -z "$BIN" ]; then
+            echo "::error::GeneralsXZH iOS binary not found"
+            find build/ios-vulkan -maxdepth 5 -type f -name '*Generals*' -print || true
+            exit 1
+          fi
+          file "$BIN"
+          file "$BIN" | grep -q 'arm64' || { echo "::error::Game binary is not arm64"; exit 1; }
+          echo "binary=$BIN" >> "$GITHUB_OUTPUT"
+
+          D3D8="$(find build/ios-vulkan -type f \( -name 'libdxvk_d3d8.0.dylib' -o -name 'libdxvk_d3d8.dylib' \) | head -1)"
+          D3D9="$(find build/ios-vulkan -type f \( -name 'libdxvk_d3d9.0.dylib' -o -name 'libdxvk_d3d9.dylib' \) | head -1)"
+          test -n "$D3D8" -a -f "$D3D8" || { echo "::error::DXVK d3d8 iOS dylib missing"; exit 1; }
+          test -n "$D3D9" -a -f "$D3D9" || { echo "::error::DXVK d3d9 iOS dylib missing"; exit 1; }
+          file "$D3D8"
+          file "$D3D9"
+          echo "d3d8=$D3D8" >> "$GITHUB_OUTPUT"
+          echo "d3d9=$D3D9" >> "$GITHUB_OUTPUT"
+
+      - name: Package unsigned Abodeh Play IPA
+        run: |
+          set -euo pipefail
+          APP="$PWD/ipa/Payload/Abodeh Play.app"
+          FRAMEWORKS="$APP/Frameworks"
+          mkdir -p "$FRAMEWORKS"
+
+          cp "${{ steps.locate.outputs.binary }}" "$APP/GeneralsXZH"
+          cp ios/Info.plist "$APP/Info.plist"
+          chmod +x "$APP/GeneralsXZH"
+
+          cp "${{ steps.locate.outputs.d3d8 }}" "$FRAMEWORKS/libdxvk_d3d8.0.dylib"
+          cp "${{ steps.locate.outputs.d3d9 }}" "$FRAMEWORKS/libdxvk_d3d9.0.dylib"
+
+          MOLTEN_FRAMEWORK="$VULKAN_SDK/lib/MoltenVK.xcframework/ios-arm64/MoltenVK.framework"
+          if [ -d "$MOLTEN_FRAMEWORK" ]; then
+            cp -R "$MOLTEN_FRAMEWORK" "$FRAMEWORKS/MoltenVK.framework"
+          else
+            echo "::error::Dynamic MoltenVK.framework iOS slice required by the current DXVK loader patch"
+            exit 1
+          fi
+
+          # Let DXVK resolve its sibling dylibs/framework from the app bundle.
+          install_name_tool -add_rpath '@executable_path/Frameworks' "$APP/GeneralsXZH" 2>/dev/null || true
+          install_name_tool -add_rpath '@loader_path' "$FRAMEWORKS/libdxvk_d3d8.0.dylib" 2>/dev/null || true
+          install_name_tool -add_rpath '@loader_path' "$FRAMEWORKS/libdxvk_d3d9.0.dylib" 2>/dev/null || true
+
+          # Ad-hoc signatures make the artifact internally coherent. A sideloading
+          # tool / Apple Developer profile must re-sign it for a physical iPhone.
+          codesign --force --sign - "$FRAMEWORKS/MoltenVK.framework/MoltenVK"
+          codesign --force --sign - "$FRAMEWORKS/libdxvk_d3d9.0.dylib"
+          codesign --force --sign - "$FRAMEWORKS/libdxvk_d3d8.0.dylib"
+          codesign --force --sign - --deep "$APP"
+          codesign --verify --deep --strict "$APP"
+
+          echo "--- executable dependencies ---"
+          otool -L "$APP/GeneralsXZH"
+          echo "--- DXVK d3d8 dependencies ---"
+          otool -L "$FRAMEWORKS/libdxvk_d3d8.0.dylib"
+
+          (cd ipa && /usr/bin/zip -qry ../Abodeh-Play-iOS-unsigned-run${{ github.run_number }}.ipa Payload)
+          ls -lh Abodeh-Play-iOS-unsigned-run${{ github.run_number }}.ipa
+
+      - name: Upload unsigned IPA
+        uses: actions/upload-artifact@v7
+        with:
+          name: Abodeh-Play-iOS-unsigned-run${{ github.run_number }}.ipa
+          path: Abodeh-Play-iOS-unsigned-run${{ github.run_number }}.ipa
+          retention-days: 7
+
+      - name: Upload iOS build logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-build-logs-${{ github.run_number }}
+          path: logs/
+          if-no-files-found: ignore
+          retention-days: 7

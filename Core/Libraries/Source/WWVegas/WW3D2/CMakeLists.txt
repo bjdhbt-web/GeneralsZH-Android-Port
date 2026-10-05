@@ -243,6 +243,15 @@ target_compile_definitions(corei_ww3d2 INTERFACE
     $<$<PLATFORM_ID:Linux,Darwin,iOS,Android>:SAGE_USE_FREETYPE>
 )
 
+# GeneralsX @build Abodeh Play 05/10/2026 - render2dsentence.cpp uses std::vector
+# for RTL shaping on desktop too. Android included <vector> locally, while Linux did not.
+# Force the standard header into WW3D2 Linux translation units until the source include
+# is normalized across all platform branches.
+target_compile_options(corei_ww3d2 INTERFACE
+    $<$<PLATFORM_ID:Linux>:-include>
+    $<$<PLATFORM_ID:Linux>:vector>
+)
+
 if (MSVC AND NOT IS_VS6_BUILD)
     target_link_libraries(corei_ww3d2 INTERFACE
         comsuppw

@@ -59,7 +59,7 @@ on:
         default: ""
       create_release:
         type: boolean
-        description: "Also publish a GitHub Release for this build (tag = v<version_name>). Requires version_name above to be set."
+        description: "Also publish a GitHub Release for this build (tag = v<version_name>). Requires BOTH version_name and version_code."
         default: false
       release_notes:
         type: string
@@ -433,6 +433,11 @@ jobs:
           echo "version_code=${{ inputs.version_code || '' }}" >> "$GITHUB_OUTPUT"
           echo "version_name=${{ inputs.version_name || '' }}" >> "$GITHUB_OUTPUT"
           echo "apk_name=GeneralsXZH-android-run${{ github.run_number }}.apk" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ inputs.version_name || '' }}" ] && [ -n "${{ inputs.version_code || '' }}" ]; then
+            echo "release_apk_name=Abodeh-Play-${{ inputs.version_name }}-vc${{ inputs.version_code }}.apk" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_apk_name=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Package APK
         env:
@@ -456,6 +461,12 @@ jobs:
           if [ ! -f "$APK" ]; then echo "::error::APK not found at $APK"; exit 1; fi
           cp "$APK" "${{ steps.artifact.outputs.apk_name }}"
           echo "path=${{ steps.artifact.outputs.apk_name }}" >> "$GITHUB_OUTPUT"
+          if [ -n "${{ steps.artifact.outputs.release_apk_name }}" ]; then
+            cp "$APK" "${{ steps.artifact.outputs.release_apk_name }}"
+            echo "release_path=${{ steps.artifact.outputs.release_apk_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_path=" >> "$GITHUB_OUTPUT"
+          fi
 
       # GeneralsX @bugfix Android CI 07/07/2026 A real device caught what CI
       # missed: run #10's APK was missing libgamespy.so (a genuine DT_NEEDED
@@ -536,10 +547,12 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_release }}
         run: |
           set -euo pipefail
-          if [ -z "${{ inputs.version_name }}" ]; then
-            echo "::error::create_release requires version_name to be set (used as the release tag)."
+          if [ -z "${{ inputs.version_name }}" ] || [ -z "${{ inputs.version_code }}" ]; then
+            echo "::error::create_release requires version_name AND version_code."
             exit 1
           fi
+          test -n "${{ steps.locate.outputs.release_path }}" || {
+            echo "::error::release APK path was not generated"; exit 1; }
 
       - name: Publish GitHub Release
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_release }}
@@ -549,7 +562,7 @@ jobs:
           name: v${{ inputs.version_name }}
           body: ${{ inputs.release_notes }}
           files: |
-            ${{ steps.locate.outputs.path }}
+            ${{ steps.locate.outputs.release_path }}
             symbols/libmain-run${{ github.run_number }}.symbols.txt.gz
           generate_release_notes: true
           make_latest: true

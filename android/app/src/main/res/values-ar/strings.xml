@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">GeneralsZH</string>
+    <string name="app_name">Abodeh Play</string>
     <string name="common_cancel">إلغاء</string>
 
     <!-- SetupActivity: title / fallback -->
-    <string name="setup_window_title">إعدادات GeneralsZH</string>
+    <string name="setup_window_title">إعدادات Abodeh Play</string>
     <string name="setup_title">Command &amp; Conquer Generals: Zero Hour</string>
-    <string name="setup_subtitle">إعدادات أندرويد</string>
+    <string name="setup_subtitle">نسخة أندرويد • Abodeh Play</string>
     <string name="setup_fallback_warning">فشل تحميل واجهة الإعدادات العادية (%1$s). يتم عرض واجهة بديلة بسيطة حتى تتمكن من الوصول إلى السجلات/مجلد اللعبة.</string>
 
     <!-- SetupActivity: Game Folder card -->
@@ -46,6 +46,18 @@
     <string name="setup_button_apply_text_size">تطبيق حجم نص القائمة</string>
     <string name="setup_text_size_help">يُكبّر أو يُصغّر نص معظم أزرار/تسميات القائمة حسب دقة الشاشة. القيمة الافتراضية للعبة هي 70؛ القيم الأعلى تجعل نص القائمة أكبر. يسري المفعول عند تشغيل اللعبة في المرة القادمة، وليس فورًا.</string>
     <string name="setup_toast_text_size_saved">تم الحفظ. سيسري المفعول في المرة القادمة التي تشغّل فيها اللعبة.</string>
+
+
+    <!-- Abodeh Play: بطاقة دقة العرض -->
+    <string name="setup_card_resolution">دقة العرض</string>
+    <string name="setup_resolution_auto_short">تلقائي</string>
+    <string name="setup_resolution_600_short">600p</string>
+    <string name="setup_resolution_720_short">720p</string>
+    <string name="setup_resolution_auto_desc">يستخدم حجم نافذة اللعبة الحقيقي الذي يتم اكتشافه عند التشغيل. أفضل جودة للصورة.</string>
+    <string name="setup_resolution_600_desc">وضع أداء للهواتف المتوسطة. يحافظ على أبعاد شاشة الجهاز ويعرض بارتفاع يقارب 600 بكسل.</string>
+    <string name="setup_resolution_720_desc">وضع متوازن. يحافظ على أبعاد شاشة الجهاز ويعرض بارتفاع يقارب 720 بكسل.</string>
+    <string name="setup_resolution_help">خفض الدقة قد يقلل حمل المعالج الرسومي. خيار «تلقائي» يحذف قيمة Resolution المفروضة ويعيد للمحرك اكتشاف حجم نافذة اللعبة الحقيقي. يسري التغيير عند التشغيل التالي.</string>
+    <string name="setup_toast_resolution_saved">تم حفظ دقة العرض. ستُطبّق عند تشغيل اللعبة في المرة القادمة.</string>
 
     <!-- SetupActivity: Render Backend card -->
     <string name="setup_card_render_backend">خلفية الرسومات</string>
@@ -322,4 +334,81 @@
     <string name="online_network_settings">إعدادات الشبكة (الخوادم، التوافق مع الحاسوب): بتاريخ %1$s، تُحدَّث تلقائيًا من GitHub المشروع وموقّعة.</string>
     <string name="online_network_settings_builtin">إعدادات الشبكة (الخوادم، التوافق مع الحاسوب): مدمجة في هذا الإصدار؛ ستصل الأحدث تلقائيًا من GitHub المشروع.</string>
     <string name="online_datapacks_chip_update">يتوفر تحديث</string>
+
+    <!-- Abodeh Play Full Edition -->
+    <string name="full_bundle_install_title">تثبيت Abodeh Play الكامل</string>
+    <string name="full_bundle_install_preparing">جارٍ تجهيز ملفات اللعبة المدمجة…</string>
+    <string name="full_bundle_install_detail">سيتم استخراج ملفات Zero Hour الكاملة تلقائيًا. لا تغلق التطبيق أثناء التثبيت.</string>
+    <string name="full_bundle_install_copying">جارٍ تثبيت ملفات اللعبة… %1$d%%</string>
+    <string name="full_bundle_install_complete">اكتمل تثبيت ملفات اللعبة ✓</string>
+    <string name="full_bundle_install_launching">جارٍ تشغيل Abodeh Play…</string>
+    <string name="full_bundle_install_failed">تعذر تثبيت ملفات اللعبة.</string>
+    <string name="full_bundle_install_retry">إعادة المحاولة</string>
+
+
+    <!-- Abodeh Play: Google Drive import -->
+    <string name="setup_button_import_drive">استيراد من Google Drive</string>
+    <string name="drive_import_title">تنزيل اللعبة من Google Drive</string>
+    <string name="drive_import_scanning">جارٍ فحص مجلد Drive…</string>
+    <string name="drive_import_keep_open">اختر مجلد Command and Conquer - Generals الذي يحتوي مجلدي Generals و Zero Hour. بعد البدء اترك التطبيق مفتوحًا حتى يكتمل النسخ.</string>
+    <string name="drive_import_copying">جارٍ تنزيل ملفات اللعبة… %1$d%%</string>
+    <string name="drive_import_complete">اكتمل تنزيل ملفات اللعبة ✓</string>
+    <string name="drive_import_launching">جارٍ تشغيل Abodeh Play…</string>
+    <string name="drive_import_failed">تعذر تنزيل ملفات اللعبة من Drive.</string>
+    <string name="drive_import_retry">متابعة / إعادة المحاولة</string>
+
+
+    <!-- Abodeh Play: تنزيل ملفات اللعبة من السيرفر الخاص -->
+    <string name="server_game_install_button">تنزيل وتثبيت Generals</string>
+    <string name="server_game_update_button">فحص / تحديث ملفات اللعبة</string>
+    <string name="server_game_install_title">تثبيت Generals + Zero Hour</string>
+    <string name="server_game_install_preparing">جارٍ الاتصال بسيرفر Abodeh Play…</string>
+    <string name="server_game_install_detail">سيتم تنزيل ملفات اللعبة الخاصة بحسابك تلقائيًا من السيرفر. يمكن متابعة التنزيل إذا انقطع الاتصال.</string>
+    <string name="server_game_install_downloading">جارٍ تنزيل ملفات اللعبة… %1$d%%</string>
+    <string name="server_game_install_file">الملف %1$d من %2$d
+%3$s</string>
+    <string name="server_game_install_complete">اكتمل تثبيت ملفات اللعبة ✓</string>
+    <string name="server_game_install_ready">Generals و Zero Hour جاهزتان للتشغيل.</string>
+    <string name="server_game_install_failed">تعذر تنزيل أو تثبيت ملفات اللعبة.</string>
+    <string name="server_game_install_retry">متابعة / إعادة المحاولة</string>
+
+
+    <string name="server_game_install_background_detail">سيستمر تنزيل ملفات اللعبة في الخلفية حتى لو أغلقت واجهة التطبيق. لا تستخدم «إيقاف إجباري» للتطبيق أثناء التنزيل.</string>
+    <string name="server_game_notification_channel">تنزيل ملفات اللعبة</string>
+    <string name="server_game_notification_channel_desc">يبقي تنزيل Generals وZero Hour يعمل في الخلفية.</string>
+    <string name="server_game_notification_title">Abodeh Play — تنزيل اللعبة</string>
+    <string name="server_game_notification_preparing">جارٍ تجهيز التنزيل…</string>
+    <string name="server_game_notification_progress">جارٍ التنزيل %1$d%% · الملف %2$d من %3$d</string>
+    <string name="server_game_notification_complete">اكتمل تنزيل ملفات اللعبة.</string>
+    <string name="server_game_notification_failed">توقف تنزيل ملفات اللعبة. افتح Abodeh Play للمتابعة.</string>
+
+
+    <!-- Abodeh Play APK self-updater -->
+    <string name="apk_update_available_title">يتوفر تحديث جديد لـ Abodeh Play</string>
+    <string name="apk_update_available_text">الإصدار %1$s جاهز. هل تريد تنزيله الآن؟</string>
+    <string name="apk_update_now">تنزيل التحديث</string>
+    <string name="apk_update_later">لاحقًا</string>
+    <string name="apk_update_downloading">جارٍ تنزيل تحديث التطبيق…</string>
+    <string name="apk_update_download_title">تحديث Abodeh Play</string>
+    <string name="apk_update_ready_title">تحديث Abodeh Play جاهز</string>
+    <string name="apk_update_ready_text">اضغط هنا لتثبيت التحديث.</string>
+    <string name="apk_update_channel">تحديثات التطبيق</string>
+    <string name="apk_update_channel_desc">إشعارات تنزيل وتثبيت تحديثات Abodeh Play.</string>
+    <string name="apk_update_install_button">تثبيت تحديث التطبيق</string>
+    <string name="apk_update_check_button">فحص تحديث التطبيق</string>
+    <string name="apk_update_current">إصدار التطبيق: %1$s (%2$d)</string>
+    <string name="apk_update_available_status">يتوفر إصدار جديد: %1$s (%2$d)</string>
+    <string name="apk_update_no_update">أنت على أحدث إصدار من التطبيق.</string>
+    <string name="apk_update_check_failed">تعذر فحص تحديث التطبيق: %1$s</string>
+
+
+    <string name="app_update_available_title">يتوفر تحديث لـ Abodeh Play</string>
+    <string name="app_update_available_message">الإصدار %1$s متوفر الآن. اضغط «تثبيت» لتنزيل التحديث، وبعدها سيعرض أندرويد شاشة التثبيت الرسمية.</string>
+    <string name="app_update_install">تثبيت</string>
+    <string name="app_update_later">لاحقًا</string>
+    <string name="app_update_downloading_title">تنزيل تحديث Abodeh Play</string>
+    <string name="app_update_downloading">جارٍ تنزيل APK…</string>
+    <string name="app_update_download_failed">فشل تنزيل تحديث التطبيق: %1$s</string>
+    <string name="app_update_install_failed">تعذر فتح شاشة تثبيت التحديث.</string>
+
 </resources>

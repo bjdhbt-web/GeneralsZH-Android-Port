@@ -1,0 +1,17 @@
+name: Build Abodeh Play Linux
+
+on:
+  push:
+    branches:
+      - abodeh-play-linux
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-linux:
+    uses: ./.github/workflows/build-linux.yml
+    with:
+      preset: linux64-deploy
+      package_format: appimage

@@ -352,6 +352,17 @@ void SortingRendererClass::Insert_To_Sorted_List(SortingNodeStruct *state)
 
 void SortingRendererClass::Insert_To_Sorting_Pool(SortingNodeStruct* state)
 {
+	// Android/DXVK hotfix: all buffers/indices on this sorting path are 16-bit.
+	// Flush the current batch before accepting a node that would cross the
+	// 65535-addressable vertex/index limit. Without this, the dynamic VB count
+	// truncates to unsigned short while the memcpy loop keeps the 32-bit total,
+	// writing past the mapped buffer and corrupting the heap.
+	if (overlapping_node_count > 0 &&
+		(overlapping_vertex_count + state->vertex_count > 65535u ||
+		 (overlapping_polygon_count + state->polygon_count) * 3u > 65535u)) {
+		Flush_Sorting_Pool();
+	}
+
 	if (overlapping_node_count>=MAX_OVERLAPPING_NODES) {
 		Release_Refs(state);
 		delete state;

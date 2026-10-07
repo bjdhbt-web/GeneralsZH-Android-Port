@@ -59,6 +59,11 @@
          multiplayer client both need plain outbound HTTPS/WebSocket. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- GeneralsX @bugfix Android port 10/07/2026 the sign-in flow backgrounds
          this app for the whole browser round-trip (open playgenerals.online,
@@ -77,7 +82,7 @@
          shared storage. The flag only has an effect on Android 10; Android 11+ ignores it and
          uses MANAGE_EXTERNAL_STORAGE ("All files access") as before. -->
     <application
-        android:label="@string/app_name"
+        android:label="Abodeh Play"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"
         android:isGame="true"
@@ -85,6 +90,20 @@
         android:hardwareAccelerated="true"
         android:supportsRtl="true"
         android:requestLegacyExternalStorage="true">
+
+        <service
+            android:name=".ServerGameDownloadService"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:foregroundServiceType="dataSync" />
+
+        <receiver
+            android:name=".ApkUpdateReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.DOWNLOAD_COMPLETE" />
+            </intent-filter>
+        </receiver>
 
         <activity
             android:name=".GeneralsZHActivity"
@@ -133,7 +152,7 @@
              <application>, which is why the overrides that used to sit here are
              gone. setup_window_title is still the title shown inside the screen. -->
         <activity
-            android:name=".SetupActivity"
+            android:name=".SubscriptionGateActivity"
             android:exported="true"
             android:theme="@style/Theme.GeneralsZHSettings"
             android:configChanges="orientation|screenSize|keyboardHidden">
@@ -142,6 +161,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".SetupActivity"
+            android:exported="true"
+            android:theme="@style/Theme.GeneralsZHSettings"
+            android:configChanges="orientation|screenSize|keyboardHidden" />
 
         <activity
             android:name=".FolderPickerActivity"

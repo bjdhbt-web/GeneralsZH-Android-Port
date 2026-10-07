@@ -125,7 +125,9 @@ def classify(pathfind: str, aiupdate: str) -> str:
     new_anchor = AIUPDATE_ANCHOR_NEW in aiupdate
     old_sched = SCHEDULED_OLD in aiupdate
     new_sched = SCHEDULED_NEW in aiupdate
-    old_direct = aiupdate.count(DIRECT_OLD)
+    # DIRECT_OLD is also a suffix of the three-tab scheduled line. Discount
+    # that one scheduled occurrence when classifying the unpatched source.
+    old_direct = aiupdate.count(DIRECT_OLD) - (1 if old_sched else 0)
     new_direct = aiupdate.count(DIRECT_NEW)
 
     original = (

@@ -58,6 +58,8 @@ Utilities for large-scale code refactoring and fixes:
 
 ### `qa/` - Quality Assurance & Testing
 
+- `pathfind-queue-regression.py` - Compile production queue/retry snippets with ASan/UBSan and exercise saturation, cancellation, FIFO, and retry wakeups for both games. Run with Python 3 and g++; restricted environments may need `ASAN_OPTIONS=detect_leaks=0`.
+
 #### `qa/smoke/` - Smoke Tests
 - `docker-smoke-test-zh.sh` - Quick startup validation (expects crash, checks init output)
 - `run-bundled-game.sh` - Test bundled binary after deployment

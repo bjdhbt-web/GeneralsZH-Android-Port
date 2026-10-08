@@ -306,7 +306,21 @@ find "${DEFAULT_DRIVER_ASSETS}" -type f | sed "s|${DEFAULT_DRIVER_ASSETS}/|    d
 # GeneralsX @feature Android port 27/09/2026 The launcher's update check (UpdateManager.java)
 # only runs a downloaded engine whose build number is higher than the APK's own. The number is
 # the commit count of the tree the engine was built from, so later builds always sort higher.
-ENGINE_BUILD="$(git -C "${PROJECT_ROOT}" rev-list --count HEAD 2>/dev/null || echo 0)"
+# GeneralsX @bugfix Codex 08/10/2026 A shallow commit count can make an older engine look newer.
+# Supply the verified full-history count when building from a shallow checkout.
+if [[ -n "${GX_ENGINE_BUILD_NUMBER:-}" ]]; then
+    ENGINE_BUILD="${GX_ENGINE_BUILD_NUMBER}"
+else
+    if [[ "$(git -C "${PROJECT_ROOT}" rev-parse --is-shallow-repository 2>/dev/null)" == "true" ]]; then
+        echo "ERROR: shallow checkout; fetch full history or set GX_ENGINE_BUILD_NUMBER to the verified full commit count."
+        exit 1
+    fi
+    ENGINE_BUILD="$(git -C "${PROJECT_ROOT}" rev-list --count HEAD 2>/dev/null || echo 0)"
+fi
+if [[ ! "${ENGINE_BUILD}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "ERROR: engine build number must be a positive full-history commit count."
+    exit 1
+fi
 echo "${ENGINE_BUILD}" > "${ANDROID_DIR}/app/src/main/assets/engine_build.txt"
 echo "==> Engine build number: ${ENGINE_BUILD}"
 
@@ -348,6 +362,16 @@ if [[ ! -f "${APK}" ]]; then
     echo "ERROR: expected APK not found at ${APK}"
     exit 1
 fi
+# GeneralsX @bugfix Codex 08/10/2026 Reject successful shell-only Gradle assemblies.
+command -v unzip >/dev/null 2>&1 || { echo "ERROR: unzip is required to verify APK libraries."; exit 1; }
+APK_ENTRIES="$(unzip -Z1 "${APK}")"
+for staged_lib in "${JNILIBS}"/*.so; do
+    entry="lib/arm64-v8a/$(basename "${staged_lib}")"
+    if ! printf '%s\n' "${APK_ENTRIES}" | grep -Fx "${entry}" >/dev/null; then
+        echo "ERROR: APK omitted ${entry}; clean the Android Gradle build and repackage."
+        exit 1
+    fi
+done
 echo "==> APK: ${APK}"
 
 if [[ $DO_INSTALL -eq 1 ]]; then

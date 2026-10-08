@@ -55,6 +55,10 @@ removing units; verify no pending units remain after pressure subsides. Test
 Skirmish and two matching APKs, then retail replays and PC cross-play separately.
 
 Previous Android Build #65 succeeded through native verification and failed in
-Package APK. Its full job log exceeded the retrieval limit; the exact packaging
-error has not yet been established. No APK is claimed for this patch and no
+Package APK. Its full job log exceeded the retrieval limit. A local build of the same
+launcher sources reproduced Java compilation failures: updater methods nested
+inside onCreate, a duplicate static guard, and an incorrect ContextCompat import.
+These are fixed. Gradle compileDebugJavaWithJavac and assembleDebug succeeded
+for the shell using JDK 17, Gradle 8.9, SDK 35 and SDL 3.4.2 Java glue. This
+shell assembly did not contain freshly built native engines and is not shipped. No APK is claimed for this patch and no
 Actions build was started.

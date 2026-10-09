@@ -58,6 +58,8 @@ Utilities for large-scale code refactoring and fixes:
 
 ### `qa/` - Quality Assurance & Testing
 
+- `touch-force-attack-regression.py` - Compile production touch force-attack code with ASan/UBSan; verify invalid targets cannot reach picking or command evaluation. Requires Python 3 and g++.
+
 - `pathfind-queue-regression.py` - Compile production queue/retry snippets with ASan/UBSan and exercise saturation, cancellation, FIFO, and retry wakeups for both games. Run with Python 3 and g++; restricted environments may need `ASAN_OPTIONS=detect_leaks=0`.
 
 #### `qa/smoke/` - Smoke Tests

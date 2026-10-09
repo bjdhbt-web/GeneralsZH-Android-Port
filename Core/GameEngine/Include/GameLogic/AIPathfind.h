@@ -918,6 +918,11 @@ private:
 	Int						m_queuePRTail;
 	Int						m_cumulativeCellsAllocated;
 
+	// GeneralsX @performance Codex 08/10/2026 Diagnostic totals; excluded from snapshots and CRC.
+	UnsignedInt m_pathQueueFullCount;
+	UnsignedInt m_pathQueueAcceptedCount;
+	UnsignedInt m_pathQueueProcessedCount;
+
 #if RTS_ZEROHOUR && RETAIL_COMPATIBLE_CRC
 public:
 	Bool					m_classifyFenceZeroInit;

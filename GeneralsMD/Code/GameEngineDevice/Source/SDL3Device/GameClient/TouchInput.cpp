@@ -43,6 +43,10 @@
 #include "GameClient/SelectionXlat.h"
 #include "GameClient/View.h"
 #include "GameLogic/Object.h"
+#include "GameLogic/TerrainLogic.h"
+
+#include <cmath>
+#include <cstdio>
 
 namespace
 {
@@ -186,6 +190,23 @@ namespace
 		Returns FALSE when the mode is not armed, or armed with nothing controllable selected --
 		then there is nothing to order, the mode is dropped, and the tap is an ordinary one.
 	*/
+	// GeneralsX @bugfix Codex 09/10/2026 Validate touch targets before command evaluation.
+	// Check XY against the active playable area. Do not constrain Z to the ground's
+	// min/max: screenToTerrain also picks bridge decks above the terrain.
+	const char *forceAttackTargetError(const Coord3D &pos, const Region3D &extent)
+	{
+		if (!std::isfinite(pos.x) || !std::isfinite(pos.y) || !std::isfinite(pos.z))
+			return "non-finite-target";
+		if (!std::isfinite(extent.lo.x) || !std::isfinite(extent.lo.y) ||
+				!std::isfinite(extent.hi.x) || !std::isfinite(extent.hi.y) ||
+				extent.lo.x >= extent.hi.x || extent.lo.y >= extent.hi.y)
+			return "invalid-map-extent";
+		if (pos.x < extent.lo.x || pos.y < extent.lo.y ||
+				pos.x > extent.hi.x || pos.y > extent.hi.y)
+			return "outside-map";
+		return nullptr;
+	}
+
 	Bool forceAttackTap(const ICoord2D &pixel)
 	{
 		if (TheInGameUI == nullptr || !TheInGameUI->isInForceAttackMode())
@@ -197,14 +218,34 @@ namespace
 			return FALSE;
 		}
 
-		Coord3D pos;
-		if (TheTacticalView != nullptr && TheGameClient != nullptr &&
-				TheTacticalView->screenToTerrain(&pixel, &pos))
+		// GeneralsX @bugfix Codex 09/10/2026 A rejected force attack must never fall
+		// through to selection/movement. Keep the mode armed for a corrected tap.
+		Coord3D pos = {};
+		const char *error = nullptr;
+		if (TheTacticalView == nullptr || TheGameClient == nullptr || TheTerrainLogic == nullptr)
+			error = "missing-engine-state";
+		else if (!TheTacticalView->screenToTerrain(&pixel, &pos))
+			error = "no-terrain-hit";
+		else
 		{
-			TheGameClient->evaluateForceAttack(pickForOrder(pixel), &pos, CommandTranslator::DO_COMMAND);
-			TheInGameUI->setForceAttackMode(FALSE);
+			Region3D extent = {};
+			TheTerrainLogic->getExtent(&extent);
+			error = forceAttackTargetError(pos, extent);
 		}
-		// Off the terrain: keep the mode armed, the player simply missed the map.
+		if (error != nullptr)
+		{
+			fprintf(stderr, "[GX-TOUCH-ATTACK] rejected reason=%s screen=%d,%d world=%.9g,%.9g,%.9g\n",
+					error, pixel.x, pixel.y, pos.x, pos.y, pos.z);
+			return TRUE;
+		}
+
+		Drawable *draw = pickForOrder(pixel);
+		fprintf(stderr, "[GX-TOUCH-ATTACK] dispatch target=%s screen=%d,%d world=%.9g,%.9g,%.9g\n",
+				draw ? "object" : "ground", pixel.x, pixel.y, pos.x, pos.y, pos.z);
+		const GameMessage::Type result =
+				TheGameClient->evaluateForceAttack(draw, &pos, CommandTranslator::DO_COMMAND);
+		fprintf(stderr, "[GX-TOUCH-ATTACK] result=%d\n", (Int)result);
+		TheInGameUI->setForceAttackMode(FALSE);
 		return TRUE;
 	}
 

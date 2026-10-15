@@ -105,6 +105,8 @@ if(ANDROID AND SAGE_ANDROID_CROSSPLAY_COMPAT)
         "Simulate at 60 Hz to match the GeneralsOnline PC client" FORCE)
 endif()
 
+# CI rebuild marker 2026-10-15: trigger Android validation build for cross-play desync fix.
+
 # Must be set here, before any add_subdirectory, so that Core and GeneralsMD are compiled
 # with the same value. GameLogic declares m_frameLegacy/m_frameLegacyLast behind this macro,
 # so a target that disagrees about it disagrees about the class layout.

@@ -89,6 +89,22 @@ endif()
 
 include(cmake/config.cmake)
 
+# GeneralsX @bugfix Android cross-play 15/10/2026
+# The GeneralsOnline Windows client simulates at 60 Hz. Android must use the
+# same lockstep contract or the two peers advance different simulation frames
+# and eventually report a multiplayer mismatch. Keep this at the top level so
+# Core and GeneralsMD see the exact same GameLogic layout and timing constants.
+option(SAGE_ANDROID_CROSSPLAY_COMPAT
+    "Match the GeneralsOnline PC simulation contract on Android"
+    ON)
+if(ANDROID AND SAGE_ANDROID_CROSSPLAY_COMPAT)
+    if(NOT SAGE_HIGH_FPS_SIM)
+        message(STATUS "Android cross-play compatibility: forcing 60 Hz simulation to match GeneralsOnline PC")
+    endif()
+    set(SAGE_HIGH_FPS_SIM ON CACHE BOOL
+        "Simulate at 60 Hz to match the GeneralsOnline PC client" FORCE)
+endif()
+
 # Must be set here, before any add_subdirectory, so that Core and GeneralsMD are compiled
 # with the same value. GameLogic declares m_frameLegacy/m_frameLegacyLast behind this macro,
 # so a target that disagrees about it disagrees about the class layout.
@@ -115,7 +131,7 @@ include(cmake/lzhl.cmake)
 # openal.cmake is self-guarded with if(SAGE_USE_OPENAL), so this is always safe to include.
 include(cmake/openal.cmake)
 
-# GeneralsX @feature BenderAI 21/04/2026 libcurl for in-game update checker (SAGE_UPDATE_CHECK builds)
+# GeneralsX @feature BenderAI 21/04/2026 libcurl for in-game update checker (SAGE_UPDATE_CHECK builds only)
 # curl.cmake is self-guarded with if(SAGE_UPDATE_CHECK), so always safe to include.
 include(cmake/curl.cmake)
 

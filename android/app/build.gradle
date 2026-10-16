@@ -6,6 +6,12 @@ android {
     namespace 'com.generalsx.zerohour'
     compileSdk 35
 
+    // GeneralsX @bugfix Codex 16/10/2026 SubscriptionApi reads VERSION_NAME;
+    // AGP 8 disables BuildConfig generation unless the module opts in.
+    buildFeatures {
+        buildConfig true
+    }
+
     // A fixed, committed debug keystore (android/app/debug.keystore) — NOT the
     // machine-local ~/.android/debug.keystore that Android tooling
     // auto-generates with a random key on first use. That default is fine on

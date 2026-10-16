@@ -341,7 +341,9 @@ if [[ -n "${GX_ANDROID_VERSION_NAME:-}" ]]; then
 fi
 
 echo "==> ${GRADLE_CMD} assembleDebug ${GRADLE_VERSION_ARG}"
-"${GRADLE_CMD}" assembleDebug ${GRADLE_VERSION_ARG}
+# GeneralsX @bugfix Codex 16/10/2026 Keep the failing task and stack trace readable
+# in CI's captured package_android.log as well as interactive local builds.
+"${GRADLE_CMD}" assembleDebug --stacktrace --console=plain ${GRADLE_VERSION_ARG}
 
 APK="${ANDROID_DIR}/app/build/outputs/apk/debug/app-debug.apk"
 if [[ ! -f "${APK}" ]]; then

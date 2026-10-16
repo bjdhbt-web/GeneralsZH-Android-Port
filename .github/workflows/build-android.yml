@@ -447,7 +447,11 @@ jobs:
           GX_ANDROID_VERSION_CODE: ${{ steps.artifact.outputs.version_code }}
           GX_ANDROID_VERSION_NAME: ${{ steps.artifact.outputs.version_name }}
         run: |
-          ./scripts/build/android/package-android-zh.sh
+          # GeneralsX @bugfix Codex 16/10/2026 Keep packaging diagnostics in
+          # the build-log artifact even when Gradle fails after native compilation.
+          set -euo pipefail
+          mkdir -p logs
+          ./scripts/build/android/package-android-zh.sh 2>&1 | tee logs/package_android.log
 
       - name: Locate APK
         id: locate

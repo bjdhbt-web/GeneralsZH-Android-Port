@@ -11,6 +11,28 @@
 # directly -- this script only exists to route around that one constraint.
 set -euo pipefail
 
+retry_network() {
+  local attempt=0 max=10
+  until "$@"; do
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge "$max" ]; then
+      echo "ERROR: network command failed after $max tries: $*" >&2
+      return 1
+    fi
+    echo "Network interrupted ($attempt/$max); retrying without clearing caches ..." >&2
+    sleep 10
+  done
+}
+download_resume() {
+  local url="$1" dest="$2"
+  retry_network curl --fail --location --continue-at - --retry 10 \
+    --retry-all-errors --retry-delay 8 --connect-timeout 45 \
+    --output "$dest" "$url"
+}
+git config --global http.lowSpeedLimit 0
+git config --global http.lowSpeedTime 999999
+git config --global http.version HTTP/1.1
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$REPO"
 
@@ -25,25 +47,25 @@ SDL3_IMAGE_TAG="release-3.4.0"
 OPENAL_SOFT_TAG="1.24.2"
 
 echo "=== [1/8] apt: ccache ==="
-sudo apt-get update -qq
-sudo apt-get install -y -qq --no-install-recommends ccache
+retry_network sudo apt-get -o Acquire::Retries=10 update -qq
+retry_network sudo apt-get -o Acquire::Retries=10 install -y -qq --no-install-recommends ccache
 ccache --version | head -1
 
 echo "=== [2/8] Android SDK (cmdline-tools + NDK + platform-35 + build-tools) ==="
 # dl.google.com is not blocked -- this step needs no workaround.
 if [ ! -f "/opt/android-sdk/ndk/${NDK_VERSION}/build/cmake/android.toolchain.cmake" ]; then
-  curl -fL --retry 3 -o /tmp/cmdline-tools.zip \
-    "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip"
-  echo "${CMDLINE_TOOLS_SHA1}  /tmp/cmdline-tools.zip" | sha1sum -c -
+  download_resume "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip" \
+    "/tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip"
+  echo "${CMDLINE_TOOLS_SHA1}  /tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip" | sha1sum -c -
   sudo rm -rf /opt/android-sdk/cmdline-tools
   sudo mkdir -p /opt/android-sdk/cmdline-tools
-  sudo unzip -q /tmp/cmdline-tools.zip -d /opt/android-sdk/cmdline-tools
+  sudo unzip -q "/tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip" -d /opt/android-sdk/cmdline-tools
   sudo mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest
   sudo chown -R "$(id -u):$(id -g)" /opt/android-sdk
-  rm /tmp/cmdline-tools.zip
+  rm "/tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip"
   SDKMANAGER=/opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
   yes | "$SDKMANAGER" --licenses >/dev/null || true
-  "$SDKMANAGER" --install "ndk;${NDK_VERSION}" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+  retry_network "$SDKMANAGER" --install "ndk;${NDK_VERSION}" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 else
   echo "NDK already present, skipping SDK install"
 fi
@@ -63,11 +85,11 @@ echo "=== [4/8] Bootstrap vcpkg (pinned commit ${VCPKG_COMMIT}) + sandbox patche
 if [ ! -d /opt/vcpkg/.git ]; then
   sudo mkdir -p /opt/vcpkg
   sudo chown -R "$(id -u):$(id -g)" /opt/vcpkg
-  git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg
+  retry_network git clone --filter=blob:none https://github.com/microsoft/vcpkg.git /opt/vcpkg
 fi
 CURRENT="$(git -C /opt/vcpkg rev-parse HEAD || echo none)"
 if [ "$CURRENT" != "${VCPKG_COMMIT}" ]; then
-  git -C /opt/vcpkg fetch origin "${VCPKG_COMMIT}"
+  retry_network git -C /opt/vcpkg fetch origin "${VCPKG_COMMIT}"
   git -C /opt/vcpkg checkout "${VCPKG_COMMIT}"
   rm -f /opt/vcpkg/vcpkg
 fi
@@ -96,7 +118,7 @@ for entry in "SDL3-src:https://github.com/libsdl-org/SDL.git:${SDL3_TAG}" \
              "openal-soft-src:https://github.com/kcat/openal-soft.git:${OPENAL_SOFT_TAG}"; do
   dir="${entry%%:*}"; rest="${entry#*:}"; repo_url="${rest%:*}"; tag="${rest##*:}"
   if [ ! -d "${FETCHCONTENT_SRC}/${dir}/.git" ]; then
-    git clone --quiet --depth 1 --branch "${tag}" "${repo_url}" "${FETCHCONTENT_SRC}/${dir}"
+    retry_network git clone --quiet --filter=blob:none --depth 1 --branch "${tag}" "${repo_url}" "${FETCHCONTENT_SRC}/${dir}"
   fi
 done
 

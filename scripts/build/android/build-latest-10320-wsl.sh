@@ -13,14 +13,38 @@ EXPECTED_NAME="1.3.0-abodeh-compat1"
 LOG="${GX_BUILD_LOG:-$HOME/generals-android-10320-build.log}"
 
 say() { printf '\n==> %s\n' "$*"; }
+retry() {
+  local n=0 max=10 delay=10
+  until "$@"; do
+    n=$((n+1))
+    if [ "$n" -ge "$max" ]; then
+      echo "ERROR: command failed after $max attempts: $*" >&2
+      return 1
+    fi
+    echo "Connection interrupted. Retry $n/$max in $delay seconds (existing downloads/cache are kept)." >&2
+    sleep "$delay"
+  done
+}
+download_resume() {
+  local url="$1" output="$2"
+  # -C - requests remaining bytes; partial ZIP stays on disk between attempts.
+  retry curl --fail --location --continue-at - --retry 10 \
+    --retry-all-errors --retry-delay 8 --connect-timeout 45 \
+    --output "$output" "$url"
+}
+# Slow networks: do not abort a transfer merely because the transfer rate is low.
+export GIT_TERMINAL_PROMPT=0
+git config --global http.lowSpeedLimit 0
+git config --global http.lowSpeedTime 999999
+git config --global http.version HTTP/1.1
 fail() { echo "ERROR: $*" >&2; exit 1; }
 trap 'echo "Build stopped near line $LINENO. Check $LOG (when created). No old Android app was removed." >&2' ERR
 
 command -v sudo >/dev/null || fail "Ubuntu/Debian with sudo required"
 [ -f /etc/debian_version ] || fail "Ubuntu/Debian Linux required (WSL2 Ubuntu is supported)"
 say "Installing host build dependencies (no GitHub Actions)"
-sudo apt-get update
-sudo apt-get install -y --no-install-recommends \
+retry sudo apt-get -o Acquire::Retries=10 update
+retry sudo apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
   git ca-certificates curl unzip zip python3 python3-pip \
   build-essential cmake ninja-build meson pkg-config \
   glslang-tools ccache openjdk-17-jdk-headless \
@@ -35,16 +59,16 @@ fi
 say "Checking out exact compatibility branch"
 if [ ! -d "$WORKDIR/.git" ]; then
   [ ! -e "$WORKDIR" ] || fail "$WORKDIR exists and is not a Git checkout"
-  git clone --branch "$BRANCH" --single-branch "$REPO_URL" "$WORKDIR"
+  retry git clone --filter=blob:none --branch "$BRANCH" --single-branch "$REPO_URL" "$WORKDIR"
 else
   [ -z "$(git -C "$WORKDIR" status --porcelain)" ] || fail "Working tree has changes; refusing to overwrite local edits."
-  git -C "$WORKDIR" fetch origin "$BRANCH"
+  retry git -C "$WORKDIR" fetch origin "$BRANCH"
   git -C "$WORKDIR" switch "$BRANCH"
   git -C "$WORKDIR" merge --ff-only FETCH_HEAD
 fi
 cd "$WORKDIR"
-git submodule update --init references/fbraz3-dxvk
-git -C references/fbraz3-dxvk submodule update --init --depth 1
+retry git submodule update --init references/fbraz3-dxvk
+retry git -C references/fbraz3-dxvk submodule update --init --depth 1
 
 say "Checking the source and the historical APK signing key"
 python3 scripts/qa/abodeh-android-compat-preflight.py
@@ -54,9 +78,10 @@ say "Installing pinned Gradle 8.9 if needed"
 GRADLE_ROOT="$HOME/.local/share/abodeh-gradle"
 if [ ! -x "$GRADLE_ROOT/gradle-8.9/bin/gradle" ]; then
   mkdir -p "$GRADLE_ROOT"
-  curl --fail --location --retry 3 \
-    "https://services.gradle.org/distributions/gradle-8.9-bin.zip" \
-    --output "$GRADLE_ROOT/gradle-8.9-bin.zip"
+  download_resume "https://services.gradle.org/distributions/gradle-8.9-bin.zip" \
+    "$GRADLE_ROOT/gradle-8.9-bin.zip"
+  unzip -tq "$GRADLE_ROOT/gradle-8.9-bin.zip" >/dev/null \
+    || fail "Gradle ZIP damaged. Remove only $GRADLE_ROOT/gradle-8.9-bin.zip and rerun."
   unzip -q -o "$GRADLE_ROOT/gradle-8.9-bin.zip" -d "$GRADLE_ROOT"
   rm -f "$GRADLE_ROOT/gradle-8.9-bin.zip"
 fi

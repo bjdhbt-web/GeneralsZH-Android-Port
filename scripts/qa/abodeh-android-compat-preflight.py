@@ -5,6 +5,7 @@ Checks obvious install/login regressions before an expensive native rebuild.
 This does not verify an APK, signature, native dependency or real phone launch.
 """
 from pathlib import Path
+import hashlib
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -37,6 +38,23 @@ check(bool(re.search(r"buildFeatures\s*\{\s*buildConfig\s+true", gradle)),
 check('https://abodeh-play-api.bjdhbt.workers.dev/v1' in manager,
       "Abodeh Play must use its independent Worker v2 endpoint")
 check('syscomx.net' not in manager, "Retired Syscom backend must not be used")
+
+# Retain the exact signing key already committed in historical app branches.
+# A new random debug keystore silently breaks Android in-place updates.
+expected_keystore_git_blob = "def041ce5766f22e6d6c9e0249b4d95a6ac6fc9d"
+key_path = ROOT / "android/app/debug.keystore"
+if key_path.is_file():
+    data = key_path.read_bytes()
+    git_blob = hashlib.sha1(b"blob " + str(len(data)).encode("ascii")
+                            + b"\x00" + data).hexdigest()
+    check(git_blob == expected_keystore_git_blob,
+          "Signing key changed! Do not ship a new APK until signer lineage is verified.")
+else:
+    check(False, "Stable debug.keystore missing; in-place updates may fail.")
+check("storeFile file('debug.keystore')" in gradle,
+      "Android signingConfig must use the stable repository keystore")
+check(gradle.count("signingConfig signingConfigs.debug") >= 2,
+      "Both debug and release sideload variants must use the stable signing key")
 
 android = "{http://schemas.android.com/apk/res/android}"
 tree = ET.parse(manifest_path)

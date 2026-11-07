@@ -82,9 +82,11 @@ APKSIGNER="/opt/android-sdk/build-tools/35.0.0/apksigner"
 BADGING="$("$AAPT" dump badging "$APK")"
 grep -q "package: name='com.generalsx.zerohour' versionCode='${EXPECTED_CODE}' versionName='${EXPECTED_NAME}'" <<< "$BADGING" \
   || fail "Built APK has an unexpected application ID or version; not publishing"
-unzip -Z1 "$APK" | grep -Fx 'lib/arm64-v8a/libmain.so' >/dev/null \
+# Capture ZIP listing before grep, avoiding pipefail/SIGPIPE on large APKs.
+APK_ENTRIES="$(unzip -Z1 "$APK")"
+grep -Fxq 'lib/arm64-v8a/libmain.so' <<< "$APK_ENTRIES" \
   || fail "30 Hz engine missing"
-unzip -Z1 "$APK" | grep -Fx 'lib/arm64-v8a/libmain60.so' >/dev/null \
+grep -Fxq 'lib/arm64-v8a/libmain60.so' <<< "$APK_ENTRIES" \
   || fail "60 Hz engine missing"
 "$APKSIGNER" verify --print-certs "$APK" || fail "APK signing validation failed"
 

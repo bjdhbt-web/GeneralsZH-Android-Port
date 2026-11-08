@@ -94,7 +94,7 @@ test -f "${ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake" || { echo "NDK
 
 echo "=== [3/8] ccache config ==="
 export CCACHE_DIR="$HOME/.cache/ccache"
-ccache --set-config=max_size=3G
+ccache --set-config="max_size=${GX_CCACHE_SIZE:-8G}"
 ccache --set-config=compiler_check=content
 ccache --zero-stats
 
@@ -163,7 +163,10 @@ rm -rf "build/${PRESET}/_deps/sdl3-src"
 ln -sfn "${FETCHCONTENT_SRC}/SDL3-src" "build/${PRESET}/_deps/sdl3-src"
 
 echo "=== [7/8] Build z_generals + DXVK d3d8/d3d9 + hooks ==="
-cmake --build "build/${PRESET}" --target z_generals dxvk_d3d8_install \
+# Explicit --parallel matters: Ninja's default can oversubscribe memory,
+# and CMAKE_BUILD_PARALLEL_LEVEL alone may be bypassed by generator arguments.
+cmake --build "build/${PRESET}" --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-3}" \
+  --target z_generals dxvk_d3d8_install \
   main_hook file_redirect_hook gsl_alloc_hook hook_impl -- -k 0 2>&1 | tee logs/build_android.log
 ccache --show-stats
 

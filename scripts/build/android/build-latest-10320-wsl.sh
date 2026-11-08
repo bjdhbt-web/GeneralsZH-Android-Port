@@ -45,7 +45,7 @@ command -v sudo >/dev/null || fail "Ubuntu/Debian with sudo required"
 say "Installing host build dependencies (no GitHub Actions)"
 retry sudo apt-get -o Acquire::Retries=10 update
 retry sudo apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
-  git ca-certificates curl unzip zip python3 python3-pip \
+  git ca-certificates curl unzip zip python3 python3-pip python3-venv \
   build-essential cmake ninja-build meson pkg-config \
   glslang-tools ccache openjdk-17-jdk-headless \
   autoconf automake libtool nasm yasm patchelf file wget
@@ -92,6 +92,25 @@ export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-3}"
 export VCPKG_MAX_CONCURRENCY="${VCPKG_MAX_CONCURRENCY:-3}"
 export GX_ANDROID_VERSION_CODE="$EXPECTED_CODE"
 export GX_ANDROID_VERSION_NAME="$EXPECTED_NAME"
+
+say "Ensuring Ninja >=1.13.2 is installed without relying on GitHub Releases"
+# Ubuntu 24.04 ships Ninja 1.11.1, but the pinned vcpkg version requires
+# Ninja 1.13.2 and GitHub Releases may return 504 on unstable connections.
+# PyPI has a small Linux x86_64 Ninja 1.13.2 wheel (~183 KB).
+NINJA_VENV="$HOME/.cache/generalszh-build-tools-venv"
+if [ ! -x "$NINJA_VENV/bin/python" ]; then
+  python3 -m venv "$NINJA_VENV"
+fi
+if [ ! -x "$NINJA_VENV/bin/ninja" ] ||
+   ! "$NINJA_VENV/bin/ninja" --version | grep -q '^1\.13\.2'; then
+  retry "$NINJA_VENV/bin/python" -m pip install --only-binary=:all: \
+    --retries 10 --timeout 60 ninja==1.13.2
+fi
+export PATH="$NINJA_VENV/bin:$PATH"
+# Keep this PATH when vcpkg runs its child tool detection, so it can
+# use the available pinned Ninja instead of downloading it from GitHub.
+export VCPKG_KEEP_ENV_VARS="${VCPKG_KEEP_ENV_VARS:+$VCPKG_KEEP_ENV_VARS;}PATH"
+ninja --version
 
 say "Building BOTH native game engines; saving the full log to $LOG"
 ./scripts/build/android/build-dual-hz.sh 2>&1 | tee "$LOG"

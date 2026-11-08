@@ -55,22 +55,34 @@ retry_network sudo apt-get -o Acquire::Retries=10 install -y -qq --no-install-re
 ccache --version | head -1
 
 echo "=== [2/8] Android SDK (cmdline-tools + NDK + platform-35 + build-tools) ==="
-# dl.google.com is not blocked -- this step needs no workaround.
-if [ ! -f "/opt/android-sdk/ndk/${NDK_VERSION}/build/cmake/android.toolchain.cmake" ]; then
-  download_resume "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip" \
-    "/tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip"
-  echo "${CMDLINE_TOOLS_SHA256}  /tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip" | sha256sum -c -
+# Download tools only when NOT already installed. In particular, if a weak
+# connection interrupted sdkmanager while installing the NDK, restarting must
+# reuse the 180 MB cmdline-tools installation instead of downloading it again.
+SDKMANAGER=/opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
+if [ ! -x "$SDKMANAGER" ]; then
+  ZIP="/tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip"
+  download_resume "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip" "$ZIP"
+  echo "${CMDLINE_TOOLS_SHA256}  $ZIP" | sha256sum -c - || {
+    echo "Android command-line tools ZIP checksum failed; delete only $ZIP and retry." >&2
+    exit 1
+  }
   sudo rm -rf /opt/android-sdk/cmdline-tools
   sudo mkdir -p /opt/android-sdk/cmdline-tools
-  sudo unzip -q "/tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip" -d /opt/android-sdk/cmdline-tools
+  sudo unzip -q "$ZIP" -d /opt/android-sdk/cmdline-tools
   sudo mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest
   sudo chown -R "$(id -u):$(id -g)" /opt/android-sdk
-  rm "/tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip"
-  SDKMANAGER=/opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
+  rm "$ZIP"
+fi
+
+# sdkmanager skips previously installed SDK components on subsequent runs.
+if [ ! -f "/opt/android-sdk/ndk/${NDK_VERSION}/build/cmake/android.toolchain.cmake" ] ||
+   [ ! -x "/opt/android-sdk/build-tools/35.0.0/aapt" ] ||
+   [ ! -f "/opt/android-sdk/platforms/android-35/android.jar" ] ||
+   [ ! -x "/opt/android-sdk/platform-tools/adb" ]; then
   yes | "$SDKMANAGER" --licenses >/dev/null || true
   retry_network "$SDKMANAGER" --install "ndk;${NDK_VERSION}" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 else
-  echo "NDK already present, skipping SDK install"
+  echo "Android SDK/NDK packages already present; no re-download needed"
 fi
 
 export ANDROID_HOME=/opt/android-sdk

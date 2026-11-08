@@ -87,9 +87,25 @@ if [ ! -x "$GRADLE_ROOT/gradle-8.9/bin/gradle" ]; then
 fi
 export PATH="$GRADLE_ROOT/gradle-8.9/bin:$PATH"
 
-# Avoid exhausting a 16 GB Windows laptop's WSL memory while building native libs.
-export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-3}"
-export VCPKG_MAX_CONCURRENCY="${VCPKG_MAX_CONCURRENCY:-3}"
+# Adapt native compilation to actual WSL resources instead of hard-coding -j3.
+# Keep 2 GiB free and budget ~2 GiB per C++ compiler process to reduce OOM.
+# nproc reflects WSL CPU quotas; MemAvailable reflects memory that can be used.
+cpu_count="$(nproc)"
+mem_available_kib="$(awk '/^MemAvailable:/ { print $2; exit }' /proc/meminfo)"
+mem_available_kib="${mem_available_kib:-4194304}"
+memory_jobs=$(( (mem_available_kib - 2097152) / 2097152 ))
+(( memory_jobs > 0 )) || memory_jobs=1
+cpu_jobs=$(( cpu_count > 1 ? cpu_count - 1 : 1 ))
+auto_jobs=$(( memory_jobs < cpu_jobs ? memory_jobs : cpu_jobs ))
+(( auto_jobs > 0 )) || auto_jobs=1
+export CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-$auto_jobs}"
+export VCPKG_MAX_CONCURRENCY="${VCPKG_MAX_CONCURRENCY:-$auto_jobs}"
+# Reuse native compiler output across builds; default 8 GiB on sufficiently
+# large storage. This is a CACHE, not additional RAM or a rebuilt dependency.
+export GX_CCACHE_SIZE="${GX_CCACHE_SIZE:-8G}"
+say "Build resources: WSL CPUs=$cpu_count; available RAM=$((mem_available_kib / 1024)) MiB"
+say "Parallel native jobs=$CMAKE_BUILD_PARALLEL_LEVEL; vcpkg jobs=$VCPKG_MAX_CONCURRENCY; ccache=$GX_CCACHE_SIZE"
+echo "Override if desired: CMAKE_BUILD_PARALLEL_LEVEL=8 VCPKG_MAX_CONCURRENCY=8 bash scripts/build/android/build-latest-10320-wsl.sh"
 export GX_ANDROID_VERSION_CODE="$EXPECTED_CODE"
 export GX_ANDROID_VERSION_NAME="$EXPECTED_NAME"
 

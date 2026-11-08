@@ -44,7 +44,9 @@ NDK_VERSION="27.2.12479018"
 CMDLINE_TOOLS_VERSION="15859902"
 CMDLINE_TOOLS_SHA256="4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583"
 VCPKG_COMMIT="42e4e33e1505c9f47b58c21e0f557c1571b751ee"
-FETCHCONTENT_SRC="/opt/fetchcontent-src"
+# Keep CMake source checkouts in a persistent user-writable cache (Ubuntu/WSL
+# non-root users cannot normally mkdir /opt/fetchcontent-src). Reuse after failures.
+FETCHCONTENT_SRC="${GX_FETCHCONTENT_SRC:-$HOME/.cache/generalszh-fetchcontent-src}"
 SDL3_TAG="release-3.4.2"
 SDL3_IMAGE_TAG="release-3.4.0"
 OPENAL_SOFT_TAG="1.24.2"

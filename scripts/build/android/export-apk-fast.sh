@@ -46,8 +46,8 @@ APKSIGNER="$ANDROID_HOME/build-tools/35.0.0/apksigner"
 read -r DEFAULT_CODE DEFAULT_NAME < <(python3 - "$REPO/android/app/build.gradle" <<'PY'
 import re, sys
 text = open(sys.argv[1], encoding="utf-8").read()
-code = re.search(r"versionCode[^\\n]*:\\s*(\\d+)\\)", text)
-name = re.search(r"versionName[^\\n]*:\\s*'([^']+)'\\)", text)
+code = re.search(r"versionCode[^\n]*:\s*(\d+)\)", text)
+name = re.search(r"versionName[^\n]*:\s*'([^']+)'\)", text)
 if not code or not name:
     raise SystemExit("Cannot determine default APK version")
 print(code.group(1), name.group(1))

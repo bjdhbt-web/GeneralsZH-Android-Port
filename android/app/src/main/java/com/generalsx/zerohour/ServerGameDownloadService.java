@@ -11,7 +11,8 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.IBinder;
 
-import androidx.core.app.ContextCompat;
+// GeneralsX @bugfix Codex 08/10/2026 ContextCompat is in the content package.
+import androidx.core.content.ContextCompat;
 import androidx.core.app.NotificationCompat;
 
 import java.util.concurrent.atomic.AtomicBoolean;

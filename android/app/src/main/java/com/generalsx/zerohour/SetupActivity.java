@@ -167,72 +167,7 @@ public class SetupActivity extends Activity {
             return;
         }
 
-        private void checkApkUpdate() {
-        new Thread(() -> {
-            try {
-                AppUpdateManager.Release release = AppUpdateManager.checkLatest(this);
-                if (release != null) {
-                    runOnUiThread(() -> showApkUpdateDialog(release));
-                }
-            } catch (Throwable t) {
-                Log.w("AbodehAppUpdate", "APK update check failed", t);
-            }
-        }, "AbodehApkUpdateCheck").start();
-    }
-
-    private void showApkUpdateDialog(AppUpdateManager.Release release) {
-        if (isFinishing() || isDestroyed()) return;
-        String shownVersion = release.versionName != null && !release.versionName.isEmpty()
-            ? release.versionName
-            : Long.toString(release.versionCode);
-        new android.app.AlertDialog.Builder(this)
-            .setTitle(R.string.app_update_available_title)
-            .setMessage(getString(R.string.app_update_available_message, shownVersion))
-            .setNegativeButton(R.string.app_update_later, null)
-            .setPositiveButton(R.string.app_update_install, (dialog, which) ->
-                downloadApkUpdate(release))
-            .show();
-    }
-
-    private void downloadApkUpdate(AppUpdateManager.Release release) {
-        final android.app.ProgressDialog progress = new android.app.ProgressDialog(this);
-        progress.setTitle(R.string.app_update_downloading_title);
-        progress.setMessage(getString(R.string.app_update_downloading));
-        progress.setProgressStyle(android.app.ProgressDialog.STYLE_HORIZONTAL);
-        progress.setIndeterminate(false);
-        progress.setMax(100);
-        progress.setCancelable(false);
-        progress.show();
-
-        new Thread(() -> {
-            try {
-                File apk = AppUpdateManager.download(this, release, (done, total) -> {
-                    int percent = total > 0
-                        ? (int) Math.min(100L, (done * 100L) / total)
-                        : 0;
-                    runOnUiThread(() -> progress.setProgress(percent));
-                });
-                runOnUiThread(() -> {
-                    progress.dismiss();
-                    try {
-                        AppUpdateManager.launchInstaller(this, apk);
-                    } catch (Throwable t) {
-                        Log.e("AbodehAppUpdate", "Could not launch APK installer", t);
-                        toast(getString(R.string.app_update_install_failed));
-                    }
-                });
-            } catch (Throwable t) {
-                Log.e("AbodehAppUpdate", "APK update download failed", t);
-                runOnUiThread(() -> {
-                    progress.dismiss();
-                    toast(getString(R.string.app_update_download_failed,
-                        t.getMessage() != null ? t.getMessage() : t.getClass().getSimpleName()));
-                });
-            }
-        }, "AbodehApkUpdateDownload").start();
-    }
-
-    // GeneralsX @feature Android port launcher-ui-2026 08/09/2026 Which
+        // GeneralsX @feature Android port launcher-ui-2026 08/09/2026 Which
         // bottom-navigation section to open on. Survives the recreate() the
         // language picker performs, so changing the launcher language leaves
         // you looking at the section you changed it from rather than being
@@ -432,10 +367,7 @@ public class SetupActivity extends Activity {
             sAutoUpdateCheckedThisProcess = true;
             runUpdateCheck(false);
         }
-        if (!sApkUpdateCheckedThisProcess) {
-            sApkUpdateCheckedThisProcess = true;
-            checkApkUpdate();
-        }
+        // GeneralsX @bugfix Codex 08/10/2026 Use the update flow that maintains status and pending installs.
         // App APK updates are independent from the engine auto-update toggle:
         // check once per app process so every user is offered a newer launcher.
         if (!sApkUpdateCheckedThisProcess) {
@@ -683,7 +615,7 @@ public class SetupActivity extends Activity {
     private boolean updateCheckRunning;
     private boolean apkUpdateCheckRunning;
     private static boolean sAutoUpdateCheckedThisProcess;
-    private static boolean sApkUpdateCheckedThisProcess;
+    // GeneralsX @bugfix Codex 08/10/2026 One guard for the launcher APK update flow.
     private static boolean sApkUpdateCheckedThisProcess;
     private static boolean sApkUpdatePromptedThisProcess;
 

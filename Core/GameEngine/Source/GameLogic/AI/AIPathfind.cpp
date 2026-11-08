@@ -4102,6 +4102,9 @@ void Pathfinder::reset()
 	}
 	m_queuePRHead = 0;
 	m_queuePRTail = 0;
+	m_pathQueueFullCount = 0;
+	m_pathQueueAcceptedCount = 0;
+	m_pathQueueProcessedCount = 0;
 
 	m_numWallPieces = 0;
 	for (i=0; i<MAX_WALL_PIECES; ++i)
@@ -5865,11 +5868,15 @@ Bool Pathfinder::queueForPath(ObjectID id)
 		nextSlot = 0;
 	}
 	if (nextSlot==m_queuePRHead) {
-		DEBUG_CRASH(("Ran out of pathfind queue slots."));
+		// GeneralsX @bugfix Codex 08/10/2026 Queue pressure is recoverable; callers retry.
+		// Do not evict an older request or advance the queue on rejection.
+		++m_pathQueueFullCount;
+		PROFILER_PLOT("PathfindQueueFull", (double)m_pathQueueFullCount);
 		return false;
 	}
 	m_queuedPathfindRequests[m_queuePRTail] = id;
 	m_queuePRTail = nextSlot;
+	++m_pathQueueAcceptedCount;
 	return true;
 }
 
@@ -6103,8 +6110,12 @@ void Pathfinder::processPathfindQueue()
 		if (obj) {
 			AIUpdateInterface *ai = obj->getAIUpdateInterface();
 			if (ai) {
-				ai->doPathfind(this);
-				pathsFound++;
+				if (ai->isWaitingForPath())
+				{
+					ai->doPathfind(this);
+					pathsFound++;
+					++m_pathQueueProcessedCount;
+				}
 			}
 		}
 		m_queuePRHead = m_queuePRHead+1;
@@ -6112,6 +6123,11 @@ void Pathfinder::processPathfindQueue()
 			m_queuePRHead = 0;
 		}
 	}
+	// GeneralsX @performance Codex 08/10/2026 Observe pressure without changing simulation work.
+	Int queueDepth = (m_queuePRTail - m_queuePRHead + PATHFIND_QUEUE_LEN) % PATHFIND_QUEUE_LEN;
+	PROFILER_PLOT("PathfindQueueDepth", (double)queueDepth);
+	PROFILER_PLOT("PathfindQueueAccepted", (double)m_pathQueueAcceptedCount);
+	PROFILER_PLOT("PathfindQueueProcessed", (double)m_pathQueueProcessedCount);
 	if (pathsFound > 0) {
 		PROFILER_PLOT("PathfindCells", (double)m_cumulativeCellsAllocated);
 		PROFILER_PLOT("PathfindPaths", (double)pathsFound);

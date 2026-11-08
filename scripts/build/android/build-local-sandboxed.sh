@@ -11,41 +11,80 @@
 # directly -- this script only exists to route around that one constraint.
 set -euo pipefail
 
+retry_network() {
+  local attempt=0 max=10
+  until "$@"; do
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge "$max" ]; then
+      echo "ERROR: network command failed after $max tries: $*" >&2
+      return 1
+    fi
+    echo "Network interrupted ($attempt/$max); retrying without clearing caches ..." >&2
+    sleep 10
+  done
+}
+download_resume() {
+  local url="$1" dest="$2"
+  # curl retries transient connections/5xx, not permanent 404 errors.
+  # No outer retry loop: a removed SDK URL must fail promptly.
+  curl --fail --location --continue-at - --retry 10 \
+    --retry-delay 8 --connect-timeout 45 \
+    --output "$dest" "$url"
+}
+git config --global http.lowSpeedLimit 0
+git config --global http.lowSpeedTime 999999
+git config --global http.version HTTP/1.1
+
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$REPO"
 
 PRESET=android-vulkan
 NDK_VERSION="27.2.12479018"
-CMDLINE_TOOLS_VERSION="13114758"
-CMDLINE_TOOLS_SHA1="5fdcc763663eefb86a5b8879697aa6088b041e70"
+# Source: https://developer.android.com/studio (Linux command-line tools).
+CMDLINE_TOOLS_VERSION="15859902"
+CMDLINE_TOOLS_SHA256="4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583"
 VCPKG_COMMIT="42e4e33e1505c9f47b58c21e0f557c1571b751ee"
-FETCHCONTENT_SRC="/opt/fetchcontent-src"
+# Keep CMake source checkouts in a persistent user-writable cache (Ubuntu/WSL
+# non-root users cannot normally mkdir /opt/fetchcontent-src). Reuse after failures.
+FETCHCONTENT_SRC="${GX_FETCHCONTENT_SRC:-$HOME/.cache/generalszh-fetchcontent-src}"
 SDL3_TAG="release-3.4.2"
 SDL3_IMAGE_TAG="release-3.4.0"
 OPENAL_SOFT_TAG="1.24.2"
 
 echo "=== [1/8] apt: ccache ==="
-sudo apt-get update -qq
-sudo apt-get install -y -qq --no-install-recommends ccache
+retry_network sudo apt-get -o Acquire::Retries=10 update -qq
+retry_network sudo apt-get -o Acquire::Retries=10 install -y -qq --no-install-recommends ccache
 ccache --version | head -1
 
 echo "=== [2/8] Android SDK (cmdline-tools + NDK + platform-35 + build-tools) ==="
-# dl.google.com is not blocked -- this step needs no workaround.
-if [ ! -f "/opt/android-sdk/ndk/${NDK_VERSION}/build/cmake/android.toolchain.cmake" ]; then
-  curl -fL --retry 3 -o /tmp/cmdline-tools.zip \
-    "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip"
-  echo "${CMDLINE_TOOLS_SHA1}  /tmp/cmdline-tools.zip" | sha1sum -c -
+# Download tools only when NOT already installed. In particular, if a weak
+# connection interrupted sdkmanager while installing the NDK, restarting must
+# reuse the 180 MB cmdline-tools installation instead of downloading it again.
+SDKMANAGER=/opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
+if [ ! -x "$SDKMANAGER" ]; then
+  ZIP="/tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip"
+  download_resume "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip" "$ZIP"
+  echo "${CMDLINE_TOOLS_SHA256}  $ZIP" | sha256sum -c - || {
+    echo "Android command-line tools ZIP checksum failed; delete only $ZIP and retry." >&2
+    exit 1
+  }
   sudo rm -rf /opt/android-sdk/cmdline-tools
   sudo mkdir -p /opt/android-sdk/cmdline-tools
-  sudo unzip -q /tmp/cmdline-tools.zip -d /opt/android-sdk/cmdline-tools
+  sudo unzip -q "$ZIP" -d /opt/android-sdk/cmdline-tools
   sudo mv /opt/android-sdk/cmdline-tools/cmdline-tools /opt/android-sdk/cmdline-tools/latest
   sudo chown -R "$(id -u):$(id -g)" /opt/android-sdk
-  rm /tmp/cmdline-tools.zip
-  SDKMANAGER=/opt/android-sdk/cmdline-tools/latest/bin/sdkmanager
+  rm "$ZIP"
+fi
+
+# sdkmanager skips previously installed SDK components on subsequent runs.
+if [ ! -f "/opt/android-sdk/ndk/${NDK_VERSION}/build/cmake/android.toolchain.cmake" ] ||
+   [ ! -x "/opt/android-sdk/build-tools/35.0.0/aapt" ] ||
+   [ ! -f "/opt/android-sdk/platforms/android-35/android.jar" ] ||
+   [ ! -x "/opt/android-sdk/platform-tools/adb" ]; then
   yes | "$SDKMANAGER" --licenses >/dev/null || true
-  "$SDKMANAGER" --install "ndk;${NDK_VERSION}" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+  retry_network "$SDKMANAGER" --install "ndk;${NDK_VERSION}" "platforms;android-35" "build-tools;35.0.0" "platform-tools"
 else
-  echo "NDK already present, skipping SDK install"
+  echo "Android SDK/NDK packages already present; no re-download needed"
 fi
 
 export ANDROID_HOME=/opt/android-sdk
@@ -55,7 +94,7 @@ test -f "${ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake" || { echo "NDK
 
 echo "=== [3/8] ccache config ==="
 export CCACHE_DIR="$HOME/.cache/ccache"
-ccache --set-config=max_size=3G
+ccache --set-config="max_size=${GX_CCACHE_SIZE:-8G}"
 ccache --set-config=compiler_check=content
 ccache --zero-stats
 
@@ -63,11 +102,11 @@ echo "=== [4/8] Bootstrap vcpkg (pinned commit ${VCPKG_COMMIT}) + sandbox patche
 if [ ! -d /opt/vcpkg/.git ]; then
   sudo mkdir -p /opt/vcpkg
   sudo chown -R "$(id -u):$(id -g)" /opt/vcpkg
-  git clone https://github.com/microsoft/vcpkg.git /opt/vcpkg
+  retry_network git clone --filter=blob:none https://github.com/microsoft/vcpkg.git /opt/vcpkg
 fi
 CURRENT="$(git -C /opt/vcpkg rev-parse HEAD || echo none)"
 if [ "$CURRENT" != "${VCPKG_COMMIT}" ]; then
-  git -C /opt/vcpkg fetch origin "${VCPKG_COMMIT}"
+  retry_network git -C /opt/vcpkg fetch origin "${VCPKG_COMMIT}"
   git -C /opt/vcpkg checkout "${VCPKG_COMMIT}"
   rm -f /opt/vcpkg/vcpkg
 fi
@@ -96,7 +135,7 @@ for entry in "SDL3-src:https://github.com/libsdl-org/SDL.git:${SDL3_TAG}" \
              "openal-soft-src:https://github.com/kcat/openal-soft.git:${OPENAL_SOFT_TAG}"; do
   dir="${entry%%:*}"; rest="${entry#*:}"; repo_url="${rest%:*}"; tag="${rest##*:}"
   if [ ! -d "${FETCHCONTENT_SRC}/${dir}/.git" ]; then
-    git clone --quiet --depth 1 --branch "${tag}" "${repo_url}" "${FETCHCONTENT_SRC}/${dir}"
+    retry_network git clone --quiet --filter=blob:none --depth 1 --branch "${tag}" "${repo_url}" "${FETCHCONTENT_SRC}/${dir}"
   fi
 done
 
@@ -124,7 +163,10 @@ rm -rf "build/${PRESET}/_deps/sdl3-src"
 ln -sfn "${FETCHCONTENT_SRC}/SDL3-src" "build/${PRESET}/_deps/sdl3-src"
 
 echo "=== [7/8] Build z_generals + DXVK d3d8/d3d9 + hooks ==="
-cmake --build "build/${PRESET}" --target z_generals dxvk_d3d8_install \
+# Explicit --parallel matters: Ninja's default can oversubscribe memory,
+# and CMAKE_BUILD_PARALLEL_LEVEL alone may be bypassed by generator arguments.
+cmake --build "build/${PRESET}" --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-3}" \
+  --target z_generals dxvk_d3d8_install \
   main_hook file_redirect_hook gsl_alloc_hook hook_impl -- -k 0 2>&1 | tee logs/build_android.log
 ccache --show-stats
 

@@ -507,7 +507,11 @@ void AIUpdateInterface::requestPath( Coord3D *destination, Bool isFinalGoal )
 		}
 		return;
 	}
-	TheAI->pathfinder()->queueForPath(getObject()->getID());
+	// GeneralsX @bugfix Codex 08/10/2026 Retry saturated queues on the next logic frame.
+	if (!TheAI->pathfinder()->queueForPath(getObject()->getID()))
+	{
+		setQueueForPathTime(1);
+	}
 
 }
 
@@ -530,7 +534,11 @@ void AIUpdateInterface::requestAttackPath( ObjectID victimID, const Coord3D* vic
 		setQueueForPathTime(2*LOGICFRAMES_PER_SECOND);
 		return;
 	}
-	TheAI->pathfinder()->queueForPath(getObject()->getID());
+	// GeneralsX @bugfix Codex 08/10/2026 Retry saturated queues on the next logic frame.
+	if (!TheAI->pathfinder()->queueForPath(getObject()->getID()))
+	{
+		setQueueForPathTime(1);
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -553,7 +561,11 @@ void AIUpdateInterface::requestApproachPath( Coord3D *destination )
 		setQueueForPathTime(2*LOGICFRAMES_PER_SECOND);
 		return;
 	}
-	TheAI->pathfinder()->queueForPath(getObject()->getID());
+	// GeneralsX @bugfix Codex 08/10/2026 Retry saturated queues on the next logic frame.
+	if (!TheAI->pathfinder()->queueForPath(getObject()->getID()))
+	{
+		setQueueForPathTime(1);
+	}
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -577,7 +589,11 @@ void AIUpdateInterface::requestSafePath( ObjectID repulsor )
 		setQueueForPathTime(2*LOGICFRAMES_PER_SECOND);
 		return;
 	}
-	TheAI->pathfinder()->queueForPath(getObject()->getID());
+	// GeneralsX @bugfix Codex 08/10/2026 Retry saturated queues on the next logic frame.
+	if (!TheAI->pathfinder()->queueForPath(getObject()->getID()))
+	{
+		setQueueForPathTime(1);
+	}
 }
 
 enum {WAYPOINT_PATH_LIMIT=1024};
@@ -1058,12 +1074,20 @@ UpdateSleepTime AIUpdateInterface::update()
 	UnsignedInt now = TheGameLogic->getFrame();
 	if (m_queueForPathFrame != 0)
 	{
-		if (now >= m_queueForPathFrame)
+		// GeneralsX @bugfix Codex 08/10/2026 Keep retries pending until admission succeeds.
+		if (!m_waitingForPath)
 		{
-			TheAI->pathfinder()->queueForPath(getObject()->getID());
+			// A stopped move must not enqueue a stale request.
 			setQueueForPathTime(0);
 		}
-		else
+		else if (now >= m_queueForPathFrame)
+		{
+			Bool queued = TheAI->pathfinder()->queueForPath(getObject()->getID());
+			setQueueForPathTime(queued ? 0 : 1);
+		}
+		// setQueueForPathTime cannot wake us while inside update(); cap this
+		// update's returned sleep too, including a failed admission above.
+		if (m_queueForPathFrame > now)
 		{
 			UnsignedInt sleepForPathDelta = m_queueForPathFrame - now;
 			if (sleepForPathDelta < subMachineSleep)

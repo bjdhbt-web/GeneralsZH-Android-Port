@@ -122,14 +122,30 @@ public class SubscriptionGateActivity extends Activity {
                             SubscriptionManager.saveManifestSummary(
                                 this, manifest.manifestVersion, manifest.manifestFileCount);
                             enterApp();
+                        } else if (isTemporaryServerFailure(manifest)
+                                && SubscriptionManager.hasValidOfflineLease(this)) {
+                            // The manifest endpoint may be down even when a previously
+                            // authenticated offline lease is still valid. Let the user
+                            // access their already-installed files, but never bypass an
+                            // explicit denial or expired lease.
+                            enterApp();
                         } else {
                             setBusy(false, messageFor(manifest));
                         }
                     });
                 } else {
                     runOnUiThread(() -> {
-                        SubscriptionManager.clearSession(this);
-                        setBusy(false, messageFor(r));
+                        if (isTemporaryServerFailure(r)
+                                && SubscriptionManager.hasValidOfflineLease(this)) {
+                            enterApp();
+                        } else {
+                            // A temporary 429/5xx must not wipe a valid token; retry
+                            // remains possible when the backend is healthy again.
+                            if (!isTemporaryServerFailure(r)) {
+                                SubscriptionManager.clearSession(this);
+                            }
+                            setBusy(false, messageFor(r));
+                        }
                     });
                 }
             } catch (Throwable t) {
@@ -176,6 +192,11 @@ public class SubscriptionGateActivity extends Activity {
                             SubscriptionManager.saveManifestSummary(
                                 this, manifest.manifestVersion, manifest.manifestFileCount);
                             enterApp();
+                        } else if (isTemporaryServerFailure(manifest)
+                                && SubscriptionManager.hasValidOfflineLease(this)) {
+                            // Login succeeded and issued a valid offline lease; a
+                            // transient manifest outage must not block local play.
+                            enterApp();
                         } else {
                             setBusy(false, messageFor(manifest));
                         }
@@ -212,6 +233,10 @@ public class SubscriptionGateActivity extends Activity {
         username.setEnabled(!value);
         password.setEnabled(!value);
         status.setText(message);
+    }
+
+    private static boolean isTemporaryServerFailure(SubscriptionApi.Result r) {
+        return r != null && (r.httpStatus == 429 || r.httpStatus >= 500);
     }
 
     private String messageFor(SubscriptionApi.Result r) {

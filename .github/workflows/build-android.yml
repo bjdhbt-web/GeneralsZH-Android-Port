@@ -79,8 +79,8 @@ jobs:
       GRADLE_VERSION: "8.9"
       # cmdline-tools zip (pinned + sha1 from Google's repository2-3.xml manifest);
       # its sdkmanager then installs the NDK/platform/build-tools above.
-      CMDLINE_TOOLS_VERSION: "13114758"
-      CMDLINE_TOOLS_SHA1: "5fdcc763663eefb86a5b8879697aa6088b041e70"
+      CMDLINE_TOOLS_VERSION: "15859902"
+      CMDLINE_TOOLS_SHA256: "4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583"
       # GeneralsX @bugfix Android CI 07/07/2026 vcpkg pinned to a 2026 master
       # commit, NOT the ffc071e0 pin the Linux workflow uses: vcpkg.json
       # overrides ffmpeg to 8.1.1#2 (+ helper port ffmpeg-bin2c 8.1.1), and a
@@ -143,7 +143,7 @@ jobs:
           set -euo pipefail
           curl -fL --retry 3 -o /tmp/cmdline-tools.zip \
             "https://dl.google.com/android/repository/commandlinetools-linux-${{ env.CMDLINE_TOOLS_VERSION }}_latest.zip"
-          echo "${{ env.CMDLINE_TOOLS_SHA1 }}  /tmp/cmdline-tools.zip" | sha1sum -c -
+          echo "${{ env.CMDLINE_TOOLS_SHA256 }}  /tmp/cmdline-tools.zip" | sha256sum -c -
           sudo mkdir -p /opt/android-sdk/cmdline-tools
           sudo unzip -q /tmp/cmdline-tools.zip -d /opt/android-sdk/cmdline-tools
           # sdkmanager requires the "<sdk>/cmdline-tools/latest" layout to locate its SDK root

@@ -52,8 +52,12 @@ SDL3_IMAGE_TAG="release-3.4.0"
 OPENAL_SOFT_TAG="1.24.2"
 
 echo "=== [1/8] apt: ccache ==="
-retry_network sudo apt-get -o Acquire::Retries=10 update -qq
-retry_network sudo apt-get -o Acquire::Retries=10 install -y -qq --no-install-recommends ccache
+if ! command -v ccache >/dev/null 2>&1; then
+  retry_network sudo apt-get -o Acquire::Retries=10 update -qq
+  retry_network sudo apt-get -o Acquire::Retries=10 install -y -qq --no-install-recommends ccache
+else
+  echo "ccache already installed; skipping apt/network"
+fi
 ccache --version | head -1
 
 echo "=== [2/8] Android SDK (cmdline-tools + NDK + platform-35 + build-tools) ==="

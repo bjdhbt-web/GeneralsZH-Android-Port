@@ -25,8 +25,10 @@ retry_network() {
 }
 download_resume() {
   local url="$1" dest="$2"
-  retry_network curl --fail --location --continue-at - --retry 10 \
-    --retry-all-errors --retry-delay 8 --connect-timeout 45 \
+  # curl retries transient connections/5xx, not permanent 404 errors.
+  # No outer retry loop: a removed SDK URL must fail promptly.
+  curl --fail --location --continue-at - --retry 10 \
+    --retry-delay 8 --connect-timeout 45 \
     --output "$dest" "$url"
 }
 git config --global http.lowSpeedLimit 0
@@ -38,8 +40,9 @@ cd "$REPO"
 
 PRESET=android-vulkan
 NDK_VERSION="27.2.12479018"
-CMDLINE_TOOLS_VERSION="13114758"
-CMDLINE_TOOLS_SHA1="5fdcc763663eefb86a5b8879697aa6088b041e70"
+# Source: https://developer.android.com/studio (Linux command-line tools).
+CMDLINE_TOOLS_VERSION="15859902"
+CMDLINE_TOOLS_SHA256="4e4c464f145a7512b57d088ac6c278c03c9eea610886b35a5e0804e74eedf583"
 VCPKG_COMMIT="42e4e33e1505c9f47b58c21e0f557c1571b751ee"
 FETCHCONTENT_SRC="/opt/fetchcontent-src"
 SDL3_TAG="release-3.4.2"
@@ -56,7 +59,7 @@ echo "=== [2/8] Android SDK (cmdline-tools + NDK + platform-35 + build-tools) ==
 if [ ! -f "/opt/android-sdk/ndk/${NDK_VERSION}/build/cmake/android.toolchain.cmake" ]; then
   download_resume "https://dl.google.com/android/repository/commandlinetools-linux-${CMDLINE_TOOLS_VERSION}_latest.zip" \
     "/tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip"
-  echo "${CMDLINE_TOOLS_SHA1}  /tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip" | sha1sum -c -
+  echo "${CMDLINE_TOOLS_SHA256}  /tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip" | sha256sum -c -
   sudo rm -rf /opt/android-sdk/cmdline-tools
   sudo mkdir -p /opt/android-sdk/cmdline-tools
   sudo unzip -q "/tmp/cmdline-tools-${CMDLINE_TOOLS_VERSION}.zip" -d /opt/android-sdk/cmdline-tools

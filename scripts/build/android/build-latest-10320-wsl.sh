@@ -167,4 +167,13 @@ fi
 say "SUCCESS: $DEST"
 ls -lh "$DEST"
 sha256sum "$DEST"
+
+# Mark exactly which tracked native sources produced the dual-Hz libraries.
+# The fast APK-only export refuses to reuse them after a native-source change.
+if native_fingerprint="$(bash "$WORKDIR/scripts/build/android/native-source-fingerprint.sh")"; then
+  printf '%s\n' "$native_fingerprint" > "$WORKDIR/build/android-vulkan/native-source-fingerprint.sha256"
+  echo "Incremental Android-only exports are enabled (native-source fingerprint saved)."
+else
+  echo "WARNING: Native sources are locally changed; fast APK-only export disabled until the next clean full build."
+fi
 printf '\nIMPORTANT: in-place updates also require the same certificate as the APK currently installed on the phone. Do not uninstall the previous app.\n'

@@ -42,13 +42,27 @@ trap 'echo "Build stopped near line $LINENO. Check $LOG (when created). No old A
 
 command -v sudo >/dev/null || fail "Ubuntu/Debian with sudo required"
 [ -f /etc/debian_version ] || fail "Ubuntu/Debian Linux required (WSL2 Ubuntu is supported)"
-say "Installing host build dependencies (no GitHub Actions)"
-retry sudo apt-get -o Acquire::Retries=10 update
-retry sudo apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
-  git ca-certificates curl unzip zip python3 python3-pip python3-venv \
-  build-essential cmake ninja-build meson pkg-config \
-  glslang-tools ccache openjdk-17-jdk-headless \
-  autoconf automake libtool nasm yasm patchelf file wget
+say "Checking host build tools (no GitHub Actions)"
+host_commands=(git curl unzip zip python3 cmake ninja meson pkg-config
+  glslangValidator ccache javac autoconf automake nasm yasm patchelf file wget)
+need_apt=0
+for required in "${host_commands[@]}"; do
+  if ! command -v "$required" >/dev/null 2>&1; then
+    echo "Missing: $required"
+    need_apt=1
+  fi
+done
+python3 -m venv --help >/dev/null 2>&1 || need_apt=1
+if [ "$need_apt" -eq 1 ]; then
+  retry sudo apt-get -o Acquire::Retries=10 update
+  retry sudo apt-get -o Acquire::Retries=10 install -y --no-install-recommends \
+    git ca-certificates curl unzip zip python3 python3-pip python3-venv \
+    build-essential cmake ninja-build meson pkg-config \
+    glslang-tools ccache openjdk-17-jdk-headless \
+    autoconf automake libtool nasm yasm patchelf file wget
+else
+  echo "Host tools already installed; skipping apt download/upgrade checks."
+fi
 
 say "Checking free disk space"
 free_kb=$(df -Pk "$HOME" | awk 'NR==2 {print $4}')
@@ -62,9 +76,15 @@ if [ ! -d "$WORKDIR/.git" ]; then
   retry git clone --filter=blob:none --branch "$BRANCH" --single-branch "$REPO_URL" "$WORKDIR"
 else
   [ -z "$(git -C "$WORKDIR" status --porcelain)" ] || fail "Working tree has changes; refusing to overwrite local edits."
-  retry git -C "$WORKDIR" fetch origin "$BRANCH"
-  git -C "$WORKDIR" switch "$BRANCH"
-  git -C "$WORKDIR" merge --ff-only FETCH_HEAD
+  if [ "${GX_SKIP_GIT_PULL:-0}" = "1" ]; then
+    [ "$(git -C "$WORKDIR" branch --show-current)" = "$BRANCH" ] ||
+      fail "GX_SKIP_GIT_PULL=1 requires checkout on $BRANCH"
+    echo "Keeping current local branch; skipping remote fetch."
+  else
+    retry git -C "$WORKDIR" fetch origin "$BRANCH"
+    git -C "$WORKDIR" switch "$BRANCH"
+    git -C "$WORKDIR" merge --ff-only FETCH_HEAD
+  fi
 fi
 cd "$WORKDIR"
 retry git submodule update --init references/fbraz3-dxvk

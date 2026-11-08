@@ -75,14 +75,19 @@ if [ ! -d "$WORKDIR/.git" ]; then
   [ ! -e "$WORKDIR" ] || fail "$WORKDIR exists and is not a Git checkout"
   retry git clone --filter=blob:none --branch "$BRANCH" --single-branch "$REPO_URL" "$WORKDIR"
 else
-  [ -z "$(git -C "$WORKDIR" status --porcelain)" ] || fail "Working tree has changes; refusing to overwrite local edits."
+  # Preserve local development edits and Android packaging side-effects.
+  # Never pull/switch/reset on a dirty tree: update the remote only for clean
+  # checkouts; build from the user's current worktree otherwise.
+  [ "$(git -C "$WORKDIR" branch --show-current)" = "$BRANCH" ] ||
+    fail "Build branch mismatch: expected $BRANCH. Switch safely before building."
   if [ "${GX_SKIP_GIT_PULL:-0}" = "1" ]; then
-    [ "$(git -C "$WORKDIR" branch --show-current)" = "$BRANCH" ] ||
-      fail "GX_SKIP_GIT_PULL=1 requires checkout on $BRANCH"
-    echo "Keeping current local branch; skipping remote fetch."
+    echo "GX_SKIP_GIT_PULL=1: building current local source; no fetch/reset."
+  elif [ -n "$(git -C "$WORKDIR" status --porcelain)" ]; then
+    echo "NOTICE: local changes found; keeping them unchanged and skipping git pull."
+    git -C "$WORKDIR" status --short | head -40 || true
+    echo "The full dual-Hz build will use these LOCAL sources."
   else
     retry git -C "$WORKDIR" fetch origin "$BRANCH"
-    git -C "$WORKDIR" switch "$BRANCH"
     git -C "$WORKDIR" merge --ff-only FETCH_HEAD
   fi
 fi
